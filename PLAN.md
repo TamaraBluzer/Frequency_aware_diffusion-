@@ -14,7 +14,7 @@ each ending in a gate that must pass before moving on.
 ## Stage checklist
 
 - [x] **Stage 1** — Environment and a working DiGress
-- [ ] **Stage 2** — Evaluation harness we own
+- [x] **Stage 2** — Evaluation harness we own
 - [ ] **Stage 3** — Spectral utilities and SignNet
 - [ ] **Stage 4** — Graph autoencoder
 - [ ] **Stage 5** — Unconditional latent diffusion (`none` baseline)
@@ -78,21 +78,31 @@ environment-related. **Known gap:** SBM validity needs `graph-tool` and is unava
 Windows, so SBM V.U.N. is blocked until we implement the spectral-clustering replacement.
 Planar, which carries the headline result, is unaffected.
 
-## Stage 2 — Evaluation harness we own
+## Stage 2 — Evaluation harness we own ✅
 
 Build the evaluator before any of our own models. Every model after this point is immediately
 measurable.
 
-- Extract the DiGress evaluation into `src/eval/`, decoupled from their Lightning module so it
-  scores any list of `networkx` graphs.
-- Build the ORCA binary for orbit counts (needs `g++`; use WSL2 if Windows fights you). If it
-  will not build, drop Orbit and say so explicitly in the report.
-- Add SPECTRE's Wavelet MMD (12 ab-spline kernels via PyGSP), which DiGress omits.
-- Add the training-set self-similarity row and the Ratio summary metric.
+- [x] Extract the DiGress evaluation into **`fald/eval/`** (not `src/eval/` — DiGress installs
+  itself editable as a top-level package named `src`, which our `src` shadowed completely),
+  decoupled from their Lightning module so it scores any list of `networkx` graphs.
+- [x] Build the ORCA binary for orbit counts. Built with conda-forge MinGW g++ 5.3.0, no WSL
+  and no admin needed, so **Orbit is available** and does not have to be dropped.
+- [x] Add SPECTRE's Wavelet MMD (12 ab-spline kernels via PyGSP). Correction: DiGress does not
+  omit it — it vendors `spectral_filter_stats` and leaves the call commented out, so this was
+  re-enabling existing code.
+- [x] Add the training-set self-similarity row and the Ratio summary metric.
 
-**Gate:** MMD calibration passes — train-vs-train near zero, train-vs-Erdős–Rényi large — and
-our Planar training-set row is in the same ballpark as SPECTRE Table 1
-(Deg ~1e-4, Clus ~3e-2, Spec ~5e-3).
+**Gate:** ✅ passed — `python scripts/calibrate_eval.py --dataset planar`. Ordering
+`real-vs-real ≈ 0 < train-vs-test << ER` holds, the ER control is density-matched and scores
+3035× the floor, and our Planar training row (Deg 1.4e-5, Clus 1.7e-2, Spec 4.0e-3) matches
+SPECTRE Table 1's order of magnitude. Details and the full table in
+[docs/EVALUATION.md](docs/EVALUATION.md).
+
+Also found: DiGress's `process()` appends each graph to `data_list` twice, duplicating its
+processed splits (its logs report 80 test graphs for a 40-graph split). MMD is invariant to
+duplication so their published numbers stand, but `fald.data` does its own processing to avoid
+it.
 
 ## Stage 3 — Spectral utilities and SignNet
 
