@@ -83,7 +83,44 @@ The figure is the one that makes the hypothesis legible. On Planar, `u₂` is a 
 gradient across the layout. On SBM it splits the graph into its communities — precisely the
 global structure we claim low-frequency conditioning supplies.
 
-## Caveat found by the gate: disconnected SBM graphs
+## Disconnected graphs: resolved
+
+**Status: fixed.** `select_band` offsets the band by the number of zero eigenvalues rather than
+a hardcoded 1, so no arm can ever contain a constant direction.
+
+This matters because 3 of 128 SBM training graphs (2.3%) are disconnected. With `c` components
+`L_norm` has `c` zero eigenvalues whose eigenvectors are component indicators, carrying no
+frequency information. Dropping only the first leaves `c−1` of them inside the band — at `k=2`
+on a 2-component graph, half the conditioning budget. Because extra zero eigenvalues sit at the
+*bottom* of the spectrum, this pollutes the `low` arm and leaves `high` untouched, biasing
+precisely the low-versus-high comparison that is the headline claim.
+
+Disconnection is not a data defect. With blocks of ~25–31 nodes and `p_inter ≈ 0.003` only about
+2 edges are expected between a given pair of blocks, so occasionally getting zero is ordinary
+chance — which also means generated samples will show it.
+
+### What prior work does
+
+| Codebase | Behaviour |
+|---|---|
+| **SPECTRE** (`data.py`) | `eigvals = eigvals[1:]` / `eigvecs = eigvecs[:, 1:]` — drops exactly one, hardcoded, no component check. **Has this flaw.** |
+| **DiGress** (`extra_features.py`) | `indices = arange(k) + n_connected_components` — offsets by the component count. Also feeds `c` as a global feature and a per-node "outside the largest connected component" indicator. |
+
+We follow DiGress. Measured on the real 2-component SBM graph (n=56), `k=8`:
+
+| | selected indices | smallest eigenvalue in band | wasted slots |
+|---|---|---|---|
+| ours (offset by `c`) | `[2..9]` | 4.88e-01 | 0 |
+| SPECTRE-style (`[1:]`) | `[1..8]` | 2.44e-15 | 1 |
+
+`SpectralCondition.n_components` exposes the count so downstream models can use it as a feature
+the way DiGress does. `count_trivial_eigenpairs` uses a `1e-8` threshold: true zero eigenvalues
+land at ~1e-15, while a connected graph's `λ₂` is small but never that small. `select_band`
+also accepts `n_trivial` explicitly if you would rather pass a structurally computed count.
+
+Planar is unaffected — all 128 training graphs are connected.
+
+## Original caveat as found by the gate
 
 1 of 32 sampled SBM training graphs is disconnected (SBM #2 in the figure). This matters more
 than the count suggests:
@@ -99,9 +136,9 @@ than the count suggests:
   community structure** — visible in the figure, where SBM #2's `u₂` puts one entire component
   at ≈0 and shows no within-component structure.
 
-This is a real confound for SBM low-band conditioning, not a cosmetic issue: for those graphs
-the conditioning signal answers a different question than it does for connected graphs. Options
-when we reach the SBM arms — decide then, and report the choice — are to drop disconnected
-graphs from the SBM splits, to drop all `c` zero eigenpairs instead of exactly one, or to keep
-them and report the affected fraction. Planar graphs are all connected (0 of 32 disconnected),
-so the headline result is unaffected.
+This was a real confound for SBM low-band conditioning, not a cosmetic issue: for those graphs
+the conditioning signal answered a different question than it does for connected graphs.
+Resolved by offsetting the band by `c` — see "Disconnected graphs: resolved" above. Dropping the
+affected graphs was the alternative, and was rejected because it would change the dataset
+(breaking comparability with SPECTRE's and DiGress's published SBM numbers) and would not help
+at generation time, where the model emits disconnected graphs regardless.

@@ -35,8 +35,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from fald.data import load_splits
 from fald.data.spectral import (
     BANDS,
+    TRIVIAL_EIGVAL_TOL,
     cached_eigendecompositions,
     cluster_condition,
+    count_trivial_eigenpairs,
     eigendecomposition,
     normalized_laplacian,
     select_band,
@@ -151,6 +153,58 @@ def check_bands(graphs, k: int, rng, failures: list) -> dict:
         "high_indices": high.indices.tolist(),
         "low_eigval_max": float(low.eigvals.max()),
         "high_eigval_min": float(high.eigvals.min()),
+    }
+
+
+def check_disconnected_band(graphs, k: int, failures: list) -> dict:
+    """T-disc: on a disconnected graph the band must contain no constant directions.
+
+    SPECTRE drops exactly one eigenpair (`eigvals[1:]`), which leaves c-1 component indicators
+    inside the band. We offset by the component count instead, following DiGress. Checked on a
+    real disconnected graph, not a synthetic one, so the tolerance is exercised on real spectra.
+    """
+    disconnected = [g for g in graphs if nx.number_connected_components(g) > 1]
+    if not disconnected:
+        return {"skipped": "no disconnected graph in this sample"}
+
+    graph = disconnected[0]
+    n_components = nx.number_connected_components(graph)
+    eigvals, eigvecs = eigendecomposition(graph)
+
+    counted = count_trivial_eigenpairs(eigvals)
+    if counted != n_components:
+        failures.append(
+            f"T-disc: counted {counted} trivial eigenpairs but the graph has {n_components} "
+            f"components"
+        )
+
+    condition = select_band(eigvals, eigvecs, "low", k)
+    if condition.indices[0] < n_components:
+        failures.append(
+            f"T-disc: low band starts at index {condition.indices[0]}, which is inside the "
+            f"{n_components}-dimensional null space"
+        )
+    if condition.eigvals.min() < TRIVIAL_EIGVAL_TOL:
+        failures.append(
+            f"T-disc: low band contains a zero eigenvalue ({condition.eigvals.min():.2e}), "
+            f"so part of the conditioning budget carries no frequency information"
+        )
+    if condition.n_components != n_components:
+        failures.append("T-disc: SpectralCondition.n_components disagrees with networkx")
+
+    # What SPECTRE's hardcoded slice would have produced, for the report.
+    spectre_style = select_band(eigvals, eigvecs, "low", k, n_trivial=1)
+
+    return {
+        "n_nodes": graph.number_of_nodes(),
+        "n_components": n_components,
+        "ours_indices": condition.indices.tolist(),
+        "ours_min_eigval": float(condition.eigvals.min()),
+        "spectre_style_indices": spectre_style.indices.tolist(),
+        "spectre_style_min_eigval": float(spectre_style.eigvals.min()),
+        "spectre_style_wasted_slots": int(
+            np.sum(spectre_style.eigvals < TRIVIAL_EIGVAL_TOL)
+        ),
     }
 
 
@@ -280,6 +334,11 @@ def main() -> int:
     print(f"  high indices {report['bands']['high_indices']}")
     print(f"  low max eigval {report['bands']['low_eigval_max']:.4f} < "
           f"high min eigval {report['bands']['high_eigval_min']:.4f}")
+
+    print("\n[T-disc] disconnected-graph band offset...")
+    report["disconnected"] = check_disconnected_band(sbm, args.k, failures)
+    for key, value in report["disconnected"].items():
+        print(f"  {key}: {value}")
 
     print("\n[T-sign/T-perm] SignNet...")
     report["signnet"] = check_signnet(planar, args.k, failures)

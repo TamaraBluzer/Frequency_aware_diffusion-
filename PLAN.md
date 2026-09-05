@@ -125,12 +125,14 @@ sign flips is exactly **0.00e+00** (invariant by construction, not by tolerance)
 equivariance 3e-08, cache round-trips bit-exactly. The `u₂` node-colouring figure is at
 `results/figures/u2_node_coloring.png`. Details in [docs/SPECTRAL.md](docs/SPECTRAL.md).
 
-**Caveat the gate uncovered:** 1 of 32 sampled SBM graphs is disconnected, so its `L_norm` null
-space is 2-dimensional and dropping *one* trivial eigenpair is not enough — the `low` band then
-encodes component membership rather than community structure (visible in the figure). This is a
-real confound for the SBM arms and needs a decision (drop disconnected graphs, drop all `c` zero
-eigenpairs, or keep and report the fraction) before Stage 7's SBM grid. Planar is all connected,
-so the headline result is unaffected.
+**Caveat the gate uncovered, now fixed:** 3 of 128 SBM graphs (2.3%) are disconnected, so their
+`L_norm` null space is `c`-dimensional and dropping *one* trivial eigenpair is not enough — the
+`low` band then encodes component membership rather than community structure (visible in the
+figure). Since extra zero eigenvalues sit at the bottom of the spectrum this biased the `low`
+arm only, i.e. exactly the low-versus-high comparison that is the headline claim. `select_band`
+now offsets the band by the component count, following DiGress's `get_eigenvalues_features`.
+**SPECTRE does not do this** — its `eigvals[1:]` is hardcoded — so this is a small but genuine
+methodological improvement over the closest prior work, and worth a sentence in the report.
 
 ## Stage 4 — Graph autoencoder
 

@@ -5,8 +5,12 @@ Design decisions inherited from WORKPLAN.md §2 (G3, G4, G6) and §3.1:
   * `L_norm = I - D^-1/2 A D^-1/2` throughout, never the combinatorial `L = D - A`. The
     combinatorial Laplacian mixes degree (a local property) into the low-frequency components
     and its eigenvalues are not comparable across graph sizes; `L_norm` is bounded in [0, 2].
-  * The trivial eigenpair is always dropped. `lambda_1 = 0` with `u_1 ~ D^1/2 1` carries only
-    degree information, so including it would leak a local statistic into every band.
+  * *All* trivial eigenpairs are dropped, not just the first. A graph with `c` connected
+    components has `c` zero eigenvalues whose eigenvectors are component indicators, carrying
+    no frequency information. Dropping exactly one (as SPECTRE's `eigvals[1:]` does) leaves
+    `c-1` constant directions inside the band: at `k=2` on a 2-component graph that is half the
+    conditioning budget. This follows DiGress's `get_eigenvalues_features`, which offsets the
+    band by `n_connected_components`.
   * Every band produces a `(k,)` eigenvalue vector and an `(n, k)` eigenvector matrix, so all
     arms are dimension-matched by construction and the only difference between them is *which*
     eigenpairs are selected. That is what makes the frequency claim falsifiable rather than a
@@ -28,15 +32,21 @@ from ..paths import data_dir
 
 __all__ = [
     "BANDS",
+    "TRIVIAL_EIGVAL_TOL",
     "SpectralCondition",
     "normalized_laplacian",
     "eigendecomposition",
+    "count_trivial_eigenpairs",
     "select_band",
     "cluster_condition",
     "cached_eigendecompositions",
 ]
 
 BANDS = ("low", "high", "random", "gaussian", "cluster", "none")
+
+# Zero eigenvalues of L_norm come out at ~1e-15 in float64. A connected graph's lambda_2 can be
+# genuinely small but not this small, so the threshold separates "exactly zero" from "small".
+TRIVIAL_EIGVAL_TOL = 1e-8
 
 
 @dataclass(frozen=True)
@@ -53,6 +63,7 @@ class SpectralCondition:
     indices: np.ndarray
     band: str
     k: int
+    n_components: int = 1
 
     @property
     def n_nodes(self) -> int:
@@ -87,17 +98,31 @@ def eigendecomposition(graph: nx.Graph) -> tuple[np.ndarray, np.ndarray]:
     return eigvals[order], eigvecs[:, order]
 
 
+def count_trivial_eigenpairs(eigvals: np.ndarray, tol: float = TRIVIAL_EIGVAL_TOL) -> int:
+    """Number of zero eigenvalues of `L_norm`, which equals the connected-component count."""
+    return int(np.sum(eigvals < tol))
+
+
 def select_band(
     eigvals: np.ndarray,
     eigvecs: np.ndarray,
     band: str,
     k: int,
     rng: np.random.Generator | None = None,
+    n_trivial: int | None = None,
 ) -> SpectralCondition:
-    """Pick the `k` eigenpairs for one arm. Index 0 (the trivial eigenpair) is never eligible."""
+    """Pick the `k` eigenpairs for one arm.
+
+    The first `n_trivial` eigenpairs are never eligible. That count defaults to the number of
+    zero eigenvalues (equivalently, connected components) rather than a hardcoded 1, so a
+    disconnected graph does not spend part of its band on constant component indicators. Pass
+    `n_trivial` explicitly to override, e.g. with a structurally computed component count.
+    """
     if band not in BANDS:
         raise ValueError(f"unknown band {band!r}; expected one of {BANDS}")
     n = eigvecs.shape[0]
+    n_trivial = count_trivial_eigenpairs(eigvals) if n_trivial is None else n_trivial
+    n_trivial = max(n_trivial, 1)
 
     if band == "none" or k == 0:
         return SpectralCondition(
@@ -106,6 +131,7 @@ def select_band(
             indices=np.zeros(0, dtype=int),
             band="none",
             k=0,
+            n_components=n_trivial,
         )
 
     if band == "gaussian":
@@ -119,11 +145,15 @@ def select_band(
             indices=np.full(k, -1),
             band=band,
             k=k,
+            n_components=n_trivial,
         )
 
-    eligible = np.arange(1, n)
+    eligible = np.arange(n_trivial, n)
     if k > len(eligible):
-        raise ValueError(f"k={k} exceeds the {len(eligible)} non-trivial eigenpairs of an n={n} graph")
+        raise ValueError(
+            f"k={k} exceeds the {len(eligible)} non-trivial eigenpairs of an n={n} graph "
+            f"with {n_trivial} connected component(s)"
+        )
 
     if band == "low":
         indices = eligible[:k]
@@ -142,6 +172,7 @@ def select_band(
         indices=indices,
         band=band,
         k=k,
+        n_components=n_trivial,
     )
 
 
