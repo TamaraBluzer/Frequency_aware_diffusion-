@@ -59,9 +59,13 @@ Laplacian eigenfeatures to its denoiser without studying which band or how many.
 
 ## Stage 1 — Environment and a working DiGress ✅
 
-- [x] Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`. OneDrive
-  syncing `.git` and checkpoints causes corruption; the short path also avoids Windows'
-  260-character path limit that PyG's nested build directories can trip.
+- [x] ~~Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`.~~
+  **Reversed.** The repo stays on the OneDrive path because Cursor scopes chat history to the
+  workspace path with no supported migration, so moving the folder discards the project's entire
+  conversation history. Instead, the heavy artifacts (`third_party/`, `data/`, `checkpoints/`)
+  live at `C:\dev\fald-work` via `FALD_WORK_DIR` — 192 MB of churn out of the synced tree, 11 MB
+  left in it. The 260-character path limit turned out to be moot since PyG installs from wheels.
+  See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 - [x] `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`, `data/`, `third_party/`.
 - [x] Detect GPU and CUDA version *before* pinning the PyTorch build.
 - [x] Create the conda environment, clone DiGress into `third_party/digress`, install.

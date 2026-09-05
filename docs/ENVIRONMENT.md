@@ -17,8 +17,51 @@ deviation was unavoidable. Read this before debugging an environment problem.
 | Conda | Miniconda, per-user install at `C:\Users\dhalperin\miniconda3` |
 | Compiler | MinGW g++ 5.3.0 from conda-forge `m2w64-toolchain` |
 
-Repo lives at `C:\dev\FinalProject`, deliberately outside OneDrive: syncing `.git` and
-checkpoints corrupts them, and the short path avoids the 260-character Windows path limit.
+## Repository location and `FALD_WORK_DIR`
+
+The repo stays at its original OneDrive path:
+
+```
+C:\Users\dhalperin\OneDrive - NVIDIA Corporation\Documents\University\ML With Graphs\FinalProject
+```
+
+`PLAN.md` Stage 1 called for moving it to `C:\dev\FinalProject`, and it was moved — then moved
+back. The reason is Cursor: chat history is scoped to the workspace path, it is **not** stored in
+the project folder, and there is no supported way to migrate it. Cursor's docs never document the
+storage layout, and Cursor staff have stated the sidebar is rebuilt from a workspace-storage
+session index rather than the on-disk transcripts, so a manual file copy would not restore it.
+Moving the folder silently discards the project's entire conversation history.
+
+The concerns behind the original decision are addressed differently. Two never materialized: the
+260-character path limit is a non-issue because PyG installed from wheels, so there are no deep
+nested build directories. What remains is sync churn and mid-write corruption of large files —
+handled by keeping the large, regenerable artifacts out of the synced tree:
+
+| Env var | Value here | Governs |
+|---|---|---|
+| `FALD_WORK_DIR` | `C:\dev\fald-work` | `third_party/`, `data/`, `checkpoints/` |
+
+`fald/paths.py` resolves those three under `FALD_WORK_DIR`, falling back to the repo root when
+it is unset, so a fresh clone on a machine without OneDrive works with no configuration. This
+moved 192 MB of churn (166 MB DiGress checkout, 26 MB datasets and eigendecomposition caches)
+out of OneDrive; what syncs is 11 MB, almost entirely the four reference PDFs.
+
+`results/` deliberately stays in the repo — it is small and worth versioning next to the code.
+
+Not implemented with directory junctions on purpose: OneDrive sometimes follows them and syncs
+the target anyway, which is worse than doing nothing.
+
+The env var is set persistently at user scope, so **new** terminals pick it up automatically;
+one already open when it was set will not have it.
+
+### Run DiGress with `MPLBACKEND=Agg`
+
+DiGress's `visualization.py` plots during sampling. On Windows matplotlib defaults to the Tk
+backend, which is torn down from a non-main thread and floods the log with
+`RuntimeError: main thread is not in main loop` and `Tcl_AsyncDelete: async handler deleted by
+the wrong thread`. The errors are cosmetic — they happen after metrics are computed and the exit
+code is still 0 — but they bury the output. Prefix runs with `MPLBACKEND=Agg`. It is not set
+globally on purpose, since that would disable interactive plots in unrelated projects.
 
 Conda is configured for **conda-forge only** (`channel_priority: strict`). The Anaconda
 default channels require accepting Anaconda's Terms of Service, which is a licensing question
