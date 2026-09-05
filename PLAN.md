@@ -15,7 +15,7 @@ each ending in a gate that must pass before moving on.
 
 - [x] **Stage 1** — Environment and a working DiGress
 - [x] **Stage 2** — Evaluation harness we own
-- [ ] **Stage 3** — Spectral utilities and SignNet
+- [x] **Stage 3** — Spectral utilities and SignNet
 - [ ] **Stage 4** — Graph autoencoder
 - [ ] **Stage 5** — Unconditional latent diffusion (`none` baseline)
 - [ ] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE)**
@@ -104,18 +104,29 @@ processed splits (its logs report 80 test graphs for a 40-graph split). MMD is i
 duplication so their published numbers stand, but `fald.data` does its own processing to avoid
 it.
 
-## Stage 3 — Spectral utilities and SignNet
+## Stage 3 — Spectral utilities and SignNet ✅
 
-- `src/data/spectral.py`: normalized Laplacian, eigendecomposition, and band selection for all
-  six arms (`low`, `high`, `random`, `gaussian`, `cluster`, `none`). Adapt from DiGress
-  `extra_features.py`.
-- Cache eigendecompositions to disk. The spectrum never changes during training, so
-  recomputing per epoch is a large silent cost.
-- Implement SignNet for sign-invariant eigenvector encoding, plus random sign-flip augmentation.
+- [x] `fald/data/spectral.py`: normalized Laplacian, eigendecomposition, and band selection for
+  all six arms (`low`, `high`, `random`, `gaussian`, `cluster`, `none`). Written directly
+  against `L_norm` rather than adapted from DiGress `extra_features.py`, which is built for
+  batched masked tensors inside their denoiser rather than per-graph numpy analysis.
+- [x] Cache eigendecompositions to disk, keyed by graph structure so a changed split misses the
+  cache instead of silently returning the wrong spectra.
+- [x] Implement SignNet for sign-invariant eigenvector encoding, plus random sign-flip
+  augmentation.
 
-**Gate:** eigendecomposition sanity test passes (`L u = λ u`, `λ ∈ [0,2]`, zero-eigenvalue
-multiplicity equals connected-component count) and SignNet output is invariant to sign flips.
-Produce the `u₂` node-coloring figure for real Planar and SBM graphs — this goes in the report.
+**Gate:** ✅ passed — `python scripts/spectral_sanity.py`. `‖Lu − λu‖ = 1.2e-15`, `λ ∈ [0,2]`,
+zero-eigenvalue multiplicity equals component count on all 64 graphs, SignNet deviation under
+sign flips is exactly **0.00e+00** (invariant by construction, not by tolerance), permutation
+equivariance 3e-08, cache round-trips bit-exactly. The `u₂` node-colouring figure is at
+`results/figures/u2_node_coloring.png`. Details in [docs/SPECTRAL.md](docs/SPECTRAL.md).
+
+**Caveat the gate uncovered:** 1 of 32 sampled SBM graphs is disconnected, so its `L_norm` null
+space is 2-dimensional and dropping *one* trivial eigenpair is not enough — the `low` band then
+encodes component membership rather than community structure (visible in the figure). This is a
+real confound for the SBM arms and needs a decision (drop disconnected graphs, drop all `c` zero
+eigenpairs, or keep and report the fraction) before Stage 7's SBM grid. Planar is all connected,
+so the headline result is unaffected.
 
 ## Stage 4 — Graph autoencoder
 
