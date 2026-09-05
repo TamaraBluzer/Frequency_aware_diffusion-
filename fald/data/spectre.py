@@ -22,6 +22,8 @@ import networkx as nx
 import numpy as np
 import torch
 
+from ..paths import data_dir
+
 __all__ = ["DATASETS", "load_splits", "raw_file"]
 
 DATASETS = {
@@ -33,15 +35,11 @@ DATASETS = {
 _BASE_URL = "https://raw.githubusercontent.com/KarolisMart/SPECTRE/main/data"
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
-
-
 def raw_file(name: str) -> Path:
     if name not in DATASETS:
         raise ValueError(f"Unknown dataset {name!r}; expected one of {sorted(DATASETS)}")
     filename, _ = DATASETS[name]
-    target = _repo_root() / "data" / "raw" / filename
+    target = data_dir() / "raw" / filename
     if not target.exists():
         target.parent.mkdir(parents=True, exist_ok=True)
         urllib.request.urlretrieve(f"{_BASE_URL}/{filename}", target)

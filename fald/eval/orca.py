@@ -15,25 +15,23 @@ from pathlib import Path
 
 import numpy as np
 
+from ..paths import third_party_dir
+
 _COUNT_START = "orbit counts:"
 
 _ENV_VAR = "FALD_ORCA_PATH"
-_DEFAULT_RELATIVE = Path("third_party/digress/src/analysis/orca/orca")
+_DEFAULT_RELATIVE = Path("digress/src/analysis/orca/orca")
 
 
 class OrcaUnavailable(RuntimeError):
     pass
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
-
-
 def orca_path() -> Path:
     """Resolve the ORCA binary, honouring FALD_ORCA_PATH for non-default layouts."""
     override = os.environ.get(_ENV_VAR)
     candidates = [Path(override)] if override else []
-    candidates.append(_repo_root() / _DEFAULT_RELATIVE)
+    candidates.append(third_party_dir() / _DEFAULT_RELATIVE)
 
     for base in candidates:
         for suffix in ("", ".exe"):

@@ -24,6 +24,8 @@ import networkx as nx
 import numpy as np
 from scipy.linalg import eigh
 
+from ..paths import data_dir
+
 __all__ = [
     "BANDS",
     "SpectralCondition",
@@ -184,7 +186,7 @@ def cached_eigendecompositions(
     silent cost (WORKPLAN.md §9). Keyed by graph structure so a changed split misses the cache
     instead of silently returning the wrong spectra.
     """
-    cache_dir = cache_dir or (Path(__file__).resolve().parents[2] / "data" / "cache")
+    cache_dir = cache_dir or (data_dir() / "cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / f"eig_{tag}_{_cache_key(graphs, tag)}.npz"
 

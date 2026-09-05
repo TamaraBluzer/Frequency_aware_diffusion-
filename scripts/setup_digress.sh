@@ -6,15 +6,18 @@ set -euo pipefail
 
 DIGRESS_COMMIT="780242b8d3e7d78316bb5cf90c639fb0cd4c6079"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DIGRESS_DIR="${REPO_ROOT}/third_party/digress"
+# Mirrors fald/paths.py: heavy artifacts live outside the OneDrive-synced repo when
+# FALD_WORK_DIR is set, and inside it otherwise.
+WORK_DIR="${FALD_WORK_DIR:-${REPO_ROOT}}"
+DIGRESS_DIR="${WORK_DIR}/third_party/digress"
 PATCH_FILE="${REPO_ROOT}/patches/digress-windows-modern-torch.patch"
 
 if [[ -d "${DIGRESS_DIR}" ]]; then
-    echo "third_party/digress already exists; remove it first to re-bootstrap." >&2
+    echo "${DIGRESS_DIR} already exists; remove it first to re-bootstrap." >&2
     exit 1
 fi
 
-mkdir -p "${REPO_ROOT}/third_party"
+mkdir -p "${WORK_DIR}/third_party"
 git clone https://github.com/cvignac/DiGress.git "${DIGRESS_DIR}"
 git -C "${DIGRESS_DIR}" checkout "${DIGRESS_COMMIT}"
 git -C "${DIGRESS_DIR}" apply "${PATCH_FILE}"
