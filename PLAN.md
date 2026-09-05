@@ -134,7 +134,18 @@ now offsets the band by the component count, following DiGress's `get_eigenvalue
 **SPECTRE does not do this** — its `eigvals[1:]` is hardcoded — so this is a small but genuine
 methodological improvement over the closest prior work, and worth a sentence in the report.
 
-## Stage 4 — Graph autoencoder
+## Stage 3.5 — Tier-0 adjacency diffusion (MISSING FROM THIS PLAN, DO NOT SKIP)
+
+Continuous diffusion directly on the dense adjacency, no autoencoder, ~150 lines. `WORKPLAN.md`
+§3.5 specifies this and says "Do not skip this"; it was omitted from this ten-stage sequence by
+mistake. It gives a working generative baseline in minutes, a published-comparable number, and
+lets the frequency sweep run without depending on the autoencoder at all — which matters because
+Stage 4 is currently blocked (see [docs/AUTOENCODER.md](docs/AUTOENCODER.md)).
+
+**Gate:** generated graphs beat a density-matched Erdős–Rényi baseline on Ratio, measured with
+the Stage 2 harness.
+
+## Stage 4 — Graph autoencoder ⚠ BLOCKED ON A DESIGN DECISION
 
 - Node latents `Z ∈ R^(n×d_v)` plus pair latents `W ∈ R^(n×n×d_e)`, LGD-style.
 - Reuse DiGress's graph transformer block as the encoder backbone; it already handles node,
@@ -144,6 +155,29 @@ methodological improvement over the closest prior work, and worth a sentence in 
 
 **Gate:** at least 99% edge accuracy on held-out Planar and SBM. Record this as the ceiling and
 plot it on every later results figure. If this fails, nothing downstream is interpretable.
+
+**Both decoder designs are built and measured; neither is usable as-is.** Full write-up in
+[docs/AUTOENCODER.md](docs/AUTOENCODER.md).
+
+| decoder | F1 | `Z` eff. rank | verdict |
+|---|---|---|---|
+| `pair` (as specified above) | **1.000** | — | passes the gate by copying: Cohen's d = 13302, a two-point binary code |
+| `node_mlp` (LGD task iii) | 0.194 | 1.04 / 32 | node latents collapse to one direction |
+| `node_mlp` + random node channels | 0.161 | 10.35 / 32 | symmetry broken, still at the base rate |
+
+Two findings drive the decision. First, `WORKPLAN.md` §3.2 specified only one of LGD's **five**
+reconstruction objectives — the single one that permits copying. Second, removing the per-pair
+lane exposes that a permutation-equivariant encoder cannot separate structurally similar nodes on
+featureless near-regular graphs, and LGD's fix for that (RRWP positional encodings) injects
+random-walk spectral structure into the latent, which would contaminate the `none` arm of our own
+frequency study.
+
+**The gate as written is also unsafe:** only the degenerate photocopy meets it, because
+reconstruction quality and latent smoothness are in tension (rate–distortion). Any latent design
+we pursue needs the latent-quality diagnostics as pass/fail conditions too.
+
+Recommended path: do **Stage 3.5 (Tier-0)** first and treat latent diffusion as the ablation
+`WORKPLAN.md` line 293 already plans. The research question does not require a latent.
 
 ## Stage 5 — Unconditional latent diffusion (the `none` baseline)
 

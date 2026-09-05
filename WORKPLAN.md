@@ -149,6 +149,24 @@ Backbone: augmented-edge graph transformer, 4–5 layers, hidden 96–128.
 Decoder `D_ξ: W → A_hat`, a linear/2-layer-MLP head per pair with BCE loss.
 Symmetrise as `(W_ij + W_ji)/2` before decoding, zero the diagonal.
 
+> **CORRECTION (measured).** This decoder specification is unsafe as written and was implemented
+> literally, with the predicted result. It is LGD's reconstruction task (ii) alone; LGD's paper
+> lists **five** tasks, prefaced "to force the encoder to learn meaningful representations", and
+> task (ii) is the only one that permits the encoder to copy `A_ij` straight into `W_ij` down a
+> private per-pair lane. Measured on Planar: F1 1.000 with Cohen's d of 13302 between the edge
+> and non-edge latent clouds — a two-point binary code, not a manifold, and 32,768 numbers for
+> 2,016 binary decisions, so no compression either.
+>
+> Tasks (i), (iv) and (v) are vacuous for us because our node features are constant, leaving only
+> (iii) — decode `e_ij` from `(z_i, z_j)`. That removes the copy path but exposes a second
+> problem: a permutation-equivariant encoder cannot separate structurally similar nodes on
+> featureless near-regular graphs, so the node latents collapse (effective rank 1.04 of 32).
+> LGD's fix is RRWP positional encodings, which are powers of the normalized adjacency and would
+> leak spectral structure into the latent, contaminating our own `none` arm.
+>
+> See [docs/AUTOENCODER.md](docs/AUTOENCODER.md). Do not re-specify a single per-pair
+> reconstruction head without reading it.
+
 Regularization: **LayerNorm on encoder outputs, no KL.** LGD reports that strong KL hurts
 downstream diffusion quality and that LayerNorm works better; we follow that and note it.
 Add a *small* `σ₀` Gaussian jitter (DualDiff-style) to keep the latent manifold smooth.
