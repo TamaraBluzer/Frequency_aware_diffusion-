@@ -1,0 +1,219 @@
+diff --git a/src/analysis/dist_helper.py b/src/analysis/dist_helper.py
+index 1ba918a..79de319 100644
+--- a/src/analysis/dist_helper.py
++++ b/src/analysis/dist_helper.py
+@@ -3,13 +3,26 @@
+ # Adapted from https://github.com/lrjconan/GRAN/ which in turn is adapted from https://github.com/JiaxuanYou/graph-generation
+ #
+ ###############################################################################
+-import pyemd
+ import numpy as np
+ import concurrent.futures
+ from functools import partial
+ from scipy.linalg import toeplitz
+ 
+ 
++def _pyemd():
++    # pyemd ships no Windows wheel past py3.9 and needs a C++ toolchain to build.
++    # It is only reachable via compute_emd=True; the reported metrics use gaussian_tv.
++    try:
++        import pyemd
++    except ImportError as exc:
++        raise ImportError(
++            "The EMD kernels (compute_emd=True) require pyemd, which is not installed "
++            "in this environment. The gaussian_tv metrics reported by DiGress and "
++            "SPECTRE do not depend on it."
++        ) from exc
++    return pyemd
++
++
+ def emd(x, y, distance_scaling=1.0):
+     support_size = max(len(x), len(y))
+     d_mat = toeplitz(range(support_size)).astype(float)
+@@ -23,7 +36,7 @@ def emd(x, y, distance_scaling=1.0):
+     elif len(y) < len(x):
+         y = np.hstack((y, [0.0] * (support_size - len(y))))
+ 
+-    emd = pyemd.emd(x, y, distance_mat)
++    emd = _pyemd().emd(x, y, distance_mat)
+     return emd
+ 
+ 
+@@ -51,7 +64,7 @@ def emd(x, y, sigma=1.0, distance_scaling=1.0):
+     elif len(y) < len(x):
+         y = np.hstack((y, [0.0] * (support_size - len(y))))
+ 
+-    return np.abs(pyemd.emd(x, y, distance_mat))
++    return np.abs(_pyemd().emd(x, y, distance_mat))
+ 
+ 
+ def gaussian_emd(x, y, sigma=1.0, distance_scaling=1.0):
+@@ -72,7 +85,7 @@ def gaussian_emd(x, y, sigma=1.0, distance_scaling=1.0):
+     elif len(y) < len(x):
+         y = np.hstack((y, [0.0] * (support_size - len(y))))
+ 
+-    emd = pyemd.emd(x, y, distance_mat)
++    emd = _pyemd().emd(x, y, distance_mat)
+     return np.exp(-emd * emd / (2 * sigma * sigma))
+ 
+ 
+diff --git a/src/analysis/spectre_utils.py b/src/analysis/spectre_utils.py
+index ca8b8bb..2722d85 100644
+--- a/src/analysis/spectre_utils.py
++++ b/src/analysis/spectre_utils.py
+@@ -3,9 +3,17 @@
+ # Adapted from https://github.com/lrjconan/GRAN/ which in turn is adapted from https://github.com/JiaxuanYou/graph-generation
+ #
+ ###############################################################################
+-import graph_tool.all as gt
+ ##Navigate to the ./util/orca directory and compile orca.cpp
+ # g++ -O2 -std=c++11 -o orca orca.cpp
++
++# graph-tool has no Windows build (conda-forge ships linux-64/osx-arm64 only), and it is
++# reachable from exactly one place: the SBM validity check in is_sbm_graph. Deferring the
++# import keeps every other metric usable instead of failing the whole module at import.
++try:
++    import graph_tool.all as gt
++except ImportError:
++    gt = None
++
+ import os
+ import copy
+ import torch
+@@ -584,7 +592,7 @@ def is_grid_graph(G):
+     """
+     all_grid_file = f"data/all_grids.pt"
+     if os.path.isfile(all_grid_file):
+-        all_grids = torch.load(all_grid_file)
++        all_grids = torch.load(all_grid_file, weights_only=False)
+     else:
+         all_grids = {}
+         for i in range(2, 20):
+@@ -610,6 +618,13 @@ def is_sbm_graph(G, p_intra=0.3, p_inter=0.005, strict=True, refinement_steps=10
+     Check if how closely given graph matches a SBM with given probabilites by computing mean probability of Wald test statistic for each recovered parameter
+     """
+ 
++    if gt is None:
++        raise NotImplementedError(
++            "is_sbm_graph requires graph-tool, which does not build on Windows. "
++            "SBM validity (and therefore SBM V.U.N.) is unavailable in this environment; "
++            "see docs/ENVIRONMENT.md for the planned spectral-clustering replacement."
++        )
++
+     adj = nx.adjacency_matrix(G).toarray()
+     idx = adj.nonzero()
+     g = gt.Graph()
+diff --git a/src/datasets/guacamol_dataset.py b/src/datasets/guacamol_dataset.py
+index d2788b3..87b5756 100644
+--- a/src/datasets/guacamol_dataset.py
++++ b/src/datasets/guacamol_dataset.py
+@@ -65,7 +65,7 @@ class GuacamolDataset(InMemoryDataset):
+         else:
+             self.file_idx = 2
+         super().__init__(root, transform, pre_transform, pre_filter)
+-        self.data, self.slices = torch.load(self.processed_paths[self.file_idx])
++        self.data, self.slices = torch.load(self.processed_paths[self.file_idx], weights_only=False)
+ 
+     @property
+     def raw_file_names(self):
+diff --git a/src/datasets/moses_dataset.py b/src/datasets/moses_dataset.py
+index 6336be0..9b168e0 100644
+--- a/src/datasets/moses_dataset.py
++++ b/src/datasets/moses_dataset.py
+@@ -44,7 +44,7 @@ class MOSESDataset(InMemoryDataset):
+         else:
+             self.file_idx = 2
+         super().__init__(root, transform, pre_transform, pre_filter)
+-        self.data, self.slices = torch.load(self.processed_paths[self.file_idx])
++        self.data, self.slices = torch.load(self.processed_paths[self.file_idx], weights_only=False)
+ 
+     @property
+     def raw_file_names(self):
+diff --git a/src/datasets/qm9_dataset.py b/src/datasets/qm9_dataset.py
+index 08f4c44..2032f4a 100644
+--- a/src/datasets/qm9_dataset.py
++++ b/src/datasets/qm9_dataset.py
+@@ -68,7 +68,7 @@ class QM9Dataset(InMemoryDataset):
+             self.file_idx = 2
+         self.remove_h = remove_h
+         super().__init__(root, transform, pre_transform, pre_filter)
+-        self.data, self.slices = torch.load(self.processed_paths[self.file_idx])
++        self.data, self.slices = torch.load(self.processed_paths[self.file_idx], weights_only=False)
+ 
+     @property
+     def raw_file_names(self):
+diff --git a/src/datasets/spectre_dataset.py b/src/datasets/spectre_dataset.py
+index a8e48e8..e6b3ef9 100644
+--- a/src/datasets/spectre_dataset.py
++++ b/src/datasets/spectre_dataset.py
+@@ -18,7 +18,7 @@ class SpectreGraphDataset(InMemoryDataset):
+         self.split = split
+         self.num_graphs = 200
+         super().__init__(root, transform, pre_transform, pre_filter)
+-        self.data, self.slices = torch.load(self.processed_paths[0])
++        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
+ 
+     @property
+     def raw_file_names(self):
+@@ -42,7 +42,7 @@ class SpectreGraphDataset(InMemoryDataset):
+             raise ValueError(f'Unknown dataset {self.dataset_name}')
+         file_path = download_url(raw_url, self.raw_dir)
+ 
+-        adjs, eigvals, eigvecs, n_nodes, max_eigval, min_eigval, same_sample, n_max = torch.load(file_path)
++        adjs, eigvals, eigvecs, n_nodes, max_eigval, min_eigval, same_sample, n_max = torch.load(file_path, weights_only=False)
+ 
+         g_cpu = torch.Generator()
+         g_cpu.manual_seed(0)
+@@ -77,7 +77,7 @@ class SpectreGraphDataset(InMemoryDataset):
+ 
+     def process(self):
+         file_idx = {'train': 0, 'val': 1, 'test': 2}
+-        raw_dataset = torch.load(self.raw_paths[file_idx[self.split]])
++        raw_dataset = torch.load(self.raw_paths[file_idx[self.split]], weights_only=False)
+ 
+         data_list = []
+         for adj in raw_dataset:
+diff --git a/src/diffusion_model.py b/src/diffusion_model.py
+index a783ed0..fd6562d 100644
+--- a/src/diffusion_model.py
++++ b/src/diffusion_model.py
+@@ -215,7 +215,8 @@ class LiftedDenoisingDiffusion(pl.LightningModule):
+                 samples_left_to_generate -= to_generate
+                 chains_left_to_save -= chains_save
+ 
+-            self.sampling_metrics(samples, self.name, self.current_epoch, val_counter=-1, test=False)
++            self.sampling_metrics(samples, self.name, self.current_epoch, val_counter=-1, test=False,
++                                  local_rank=self.local_rank)
+             print(f'Sampling took {time.time() - start:.2f} seconds\n')
+             self.sampling_metrics.reset()
+ 
+@@ -289,7 +290,8 @@ class LiftedDenoisingDiffusion(pl.LightningModule):
+             chains_left_to_save -= chains_save
+ 
+         self.sampling_metrics.reset()
+-        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True)
++        self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True,
++                              local_rank=self.local_rank)
+         self.sampling_metrics.reset()
+ 
+     def kl_prior(self, X, E, y, node_mask):
+diff --git a/src/main.py b/src/main.py
+index 352d566..15e3da3 100644
+--- a/src/main.py
++++ b/src/main.py
+@@ -1,4 +1,3 @@
+-import graph_tool as gt
+ import os
+ import pathlib
+ import warnings
+@@ -188,7 +187,9 @@ def main(cfg: DictConfig):
+ 
+     use_gpu = cfg.general.gpus > 0 and torch.cuda.is_available()
+     trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
+-                      strategy="ddp_find_unused_parameters_true",  # Needed to load old checkpoints
++                      # DDP requires NCCL, which is not built into the Windows torch wheels.
++                      # Single-device runs do not need it, so only opt in for real multi-GPU.
++                      strategy="ddp_find_unused_parameters_true" if (use_gpu and cfg.general.gpus > 1) else "auto",
+                       accelerator='gpu' if use_gpu else 'cpu',
+                       devices=cfg.general.gpus if use_gpu else 1,
+                       max_epochs=cfg.train.n_epochs,

@@ -13,7 +13,7 @@ each ending in a gate that must pass before moving on.
 
 ## Stage checklist
 
-- [ ] **Stage 1** — Environment and a working DiGress
+- [x] **Stage 1** — Environment and a working DiGress
 - [ ] **Stage 2** — Evaluation harness we own
 - [ ] **Stage 3** — Spectral utilities and SignNet
 - [ ] **Stage 4** — Graph autoencoder
@@ -38,7 +38,9 @@ Three DiGress files carry most of the value:
 
 - `src/datasets/spectre_dataset.py` — Planar and SBM graph generation and loaders
 - `src/analysis/spectre_utils.py` — degree/clustering/orbit/spectral MMD, planarity check,
-  pure-Python SBM validity test, V.U.N.
+  SBM validity test, V.U.N. Note: the SBM validity test is *not* pure Python — it needs
+  `graph_tool.minimize_blockmodel_dl`, which does not exist on Windows. See
+  [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 - `src/diffusion/extra_features.py` — Laplacian eigenvalue and eigenvector computation,
   already batched and masked
 
@@ -55,17 +57,26 @@ Laplacian eigenfeatures to its denoiser without studying which band or how many.
 
 ---
 
-## Stage 1 — Environment and a working DiGress
+## Stage 1 — Environment and a working DiGress ✅
 
-- Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`. OneDrive
+- [x] Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`. OneDrive
   syncing `.git` and checkpoints causes corruption; the short path also avoids Windows'
   260-character path limit that PyG's nested build directories can trip.
-- `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`, `data/`, `third_party/`.
-- Detect GPU and CUDA version *before* pinning the PyTorch build.
-- Create the conda environment, clone DiGress into `third_party/digress`, install.
-- Train ConGress on Planar for a few hundred steps to prove the loop runs end to end.
+- [x] `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`, `data/`, `third_party/`.
+- [x] Detect GPU and CUDA version *before* pinning the PyTorch build.
+- [x] Create the conda environment, clone DiGress into `third_party/digress`, install.
+- [x] Train ConGress on Planar for a few hundred steps to prove the loop runs end to end.
 
-**Gate:** `python main.py dataset=planar` trains, samples, and prints MMD numbers without crashing.
+**Gate:** ✅ passed — trains, samples, and prints MMD numbers without crashing.
+
+The environment diverges substantially from DiGress's documented recipe, because this is
+Windows without admin rights and a Blackwell (`sm_120`) GPU that requires PyTorch ≥ 2.7 with
+CUDA ≥ 12.8. Six patches were needed; all are recorded in
+`patches/digress-windows-modern-torch.patch` and explained in
+[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md), which is the reference for anything
+environment-related. **Known gap:** SBM validity needs `graph-tool` and is unavailable on
+Windows, so SBM V.U.N. is blocked until we implement the spectral-clustering replacement.
+Planar, which carries the headline result, is unaffected.
 
 ## Stage 2 — Evaluation harness we own
 
