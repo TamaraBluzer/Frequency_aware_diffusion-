@@ -1,0 +1,36 @@
+# Data, checkpoints, and run artifacts (per PLAN.md Stage 1 / WORKPLAN.md R5)
+results/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+wandb/
+/data/
+third_party/
+outputs/
+multirun/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Env files that may hold secrets
+.env

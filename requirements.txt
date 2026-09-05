@@ -1,0 +1,9 @@
+# Stage 2 evaluation harness -- runs anywhere (no GPU needed).
+networkx>=3.0
+numpy>=1.24
+scipy>=1.10
+pygsp>=0.5.1
+pytest>=7.0
+
+# Stage 1 (DiGress) dependencies are installed separately on Colab via
+# scripts/colab_setup.sh, since they need a matching CUDA build.

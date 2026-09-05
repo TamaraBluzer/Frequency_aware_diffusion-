@@ -13,8 +13,8 @@ each ending in a gate that must pass before moving on.
 
 ## Stage checklist
 
-- [ ] **Stage 1** — Environment and a working DiGress
-- [ ] **Stage 2** — Evaluation harness we own
+- [ ] **Stage 1** — Environment and a working DiGress (setup script + notebook ready; run on Colab GPU to close the gate)
+- [x] **Stage 2** — Evaluation harness we own
 - [ ] **Stage 3** — Spectral utilities and SignNet
 - [ ] **Stage 4** — Graph autoencoder
 - [ ] **Stage 5** — Unconditional latent diffusion (`none` baseline)
