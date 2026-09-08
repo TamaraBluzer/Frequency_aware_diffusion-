@@ -1,0 +1,66 @@
+{
+  "dataset": "planar",
+  "k": 8,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "arms": {
+    "none": {
+      "ratio_mean": 327.23326039860643,
+      "ratio_std": 8.803404088830614,
+      "validation_loss_mean": 0.1323158654073874,
+      "validation_loss_std": 0.011973931981887977,
+      "validity_mean": 0.0
+    },
+    "low": {
+      "ratio_mean": 157.96575975964052,
+      "ratio_std": 16.204328314526684,
+      "validation_loss_mean": 0.053493972246845566,
+      "validation_loss_std": 0.00435778717195412,
+      "validity_mean": 0.0
+    },
+    "high": {
+      "ratio_mean": 339.07056792428693,
+      "ratio_std": 9.182762905342514,
+      "validation_loss_mean": 0.09376218790809314,
+      "validation_loss_std": 0.008601394903680342,
+      "validity_mean": 0.0
+    },
+    "random": {
+      "ratio_mean": 326.4844470088033,
+      "ratio_std": 11.752469263305372,
+      "validation_loss_mean": 0.1283200109998385,
+      "validation_loss_std": 0.011696820810054721,
+      "validity_mean": 0.0
+    }
+  },
+  "paired_hierarchical_bootstrap": {
+    "low_minus_none": {
+      "ci_95": [
+        -189.4268251634405,
+        -152.0895612203071
+      ],
+      "median": -169.456289132765,
+      "probability_low_better": 1.0
+    },
+    "low_minus_high": {
+      "ci_95": [
+        -206.68017455254318,
+        -152.41510911633938
+      ],
+      "median": -181.83466472378194,
+      "probability_low_better": 1.0
+    },
+    "low_minus_random": {
+      "ci_95": [
+        -195.10493289460067,
+        -142.20997012054679
+      ],
+      "median": -169.10631761599592,
+      "probability_low_better": 1.0
+    }
+  },
+  "bootstraps": 1000
+}

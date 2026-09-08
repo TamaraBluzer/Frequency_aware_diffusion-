@@ -1,0 +1,20 @@
+# Normalize line endings so editors on different platforms stop producing
+# whole-file add/add conflicts on the planning docs.
+* text=auto eol=lf
+
+*.md   text eol=lf
+*.py   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.txt  text eol=lf
+*.sh   text eol=lf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.pdf  binary
+*.pt   binary
+*.pth  binary
+*.ckpt binary
+*.npz  binary
+*.npy  binary

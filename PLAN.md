@@ -1,9 +1,10 @@
 # Frequency-Aware Latent Graph Diffusion (FALD) — Staged Implementation Plan
 
-**Goal.** Build a topology-only latent graph diffusion model whose denoiser is conditioned on
-the first `k` non-trivial eigenpairs of the normalized graph Laplacian, and measure how
-generation quality varies with `k` and with which frequency band the conditioning comes from
-(low / high / random / none).
+**Goal.** Build a topology-only graph diffusion model whose denoiser is conditioned on selected
+non-trivial eigenpairs of the normalized graph Laplacian, and measure how generation quality
+varies with `k` and frequency band (low / high / random / none). As of 5 September 2026, direct
+adjacency diffusion is the primary experiment; latent diffusion is a transfer ablation rather
+than a prerequisite. See [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 Design rationale, the six closed design gaps (G1–G6), the full test list, and the risk register
 live in [WORKPLAN.md](WORKPLAN.md). **This document is the execution order:** ten small stages,
@@ -13,15 +14,17 @@ each ending in a gate that must pass before moving on.
 
 ## Stage checklist
 
-- [ ] **Stage 1** — Environment and a working DiGress (setup script + notebook ready; run on Colab GPU to close the gate)
+- [x] **Stage 1** — Environment and a working DiGress
 - [x] **Stage 2** — Evaluation harness we own
-- [ ] **Stage 3** — Spectral utilities and SignNet
-- [ ] **Stage 4** — Graph autoencoder
-- [ ] **Stage 5** — Unconditional latent diffusion (`none` baseline)
-- [ ] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE)**
+- [x] **Stage 3** — Spectral utilities and SignNet
+- [x] **Stage 3.5** — Primary continuous adjacency diffusion (`none` baseline)
+- [x] **Stage 4** — Graph autoencoder investigation (production path rejected)
+- [x] **Stage 5** — Unconditional adjacency diffusion quality gate
+- [x] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE PASSED)**
+- [ ] **Stage 6.5** — Transfer conditioning to discrete DiGress for valid generation
 - [ ] **Stage 7** — The frequency sweep (headline result)
 - [ ] **Stage 8** — Learned spectral prior
-- [ ] **Stage 9** — Downstream experiment and remaining controls
+- [ ] **Stage 9** — Latent transfer, downstream experiment, and remaining controls
 - [ ] **Stage 10** — Report
 
 ---
@@ -38,7 +41,9 @@ Three DiGress files carry most of the value:
 
 - `src/datasets/spectre_dataset.py` — Planar and SBM graph generation and loaders
 - `src/analysis/spectre_utils.py` — degree/clustering/orbit/spectral MMD, planarity check,
-  pure-Python SBM validity test, V.U.N.
+  SBM validity test, V.U.N. Note: the SBM validity test is *not* pure Python — it needs
+  `graph_tool.minimize_blockmodel_dl`, which does not exist on Windows. See
+  [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
 - `src/diffusion/extra_features.py` — Laplacian eigenvalue and eigenvector computation,
   already batched and masked
 
@@ -55,48 +60,99 @@ Laplacian eigenfeatures to its denoiser without studying which band or how many.
 
 ---
 
-## Stage 1 — Environment and a working DiGress
+## Stage 1 — Environment and a working DiGress ✅
 
-- Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`. OneDrive
-  syncing `.git` and checkpoints causes corruption; the short path also avoids Windows'
-  260-character path limit that PyG's nested build directories can trip.
-- `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`, `data/`, `third_party/`.
-- Detect GPU and CUDA version *before* pinning the PyTorch build.
-- Create the conda environment, clone DiGress into `third_party/digress`, install.
-- Train ConGress on Planar for a few hundred steps to prove the loop runs end to end.
+- [x] ~~Move the repo out of `OneDrive - NVIDIA Corporation` to `C:\dev\FinalProject`.~~
+  **Reversed.** The repo stays on the OneDrive path because Cursor scopes chat history to the
+  workspace path with no supported migration, so moving the folder discards the project's entire
+  conversation history. Instead, the heavy artifacts (`third_party/`, `data/`, `checkpoints/`)
+  live at `C:\dev\fald-work` via `FALD_WORK_DIR` — 192 MB of churn out of the synced tree, 11 MB
+  left in it. The 260-character path limit turned out to be moot since PyG installs from wheels.
+  See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
+- [x] `.gitignore` for checkpoints, samples (`*.pt`), caches, `wandb/`, data, and
+  `third_party/`. Compact `results/*.json` summaries and final figures remain reviewable.
+- [x] Detect GPU and CUDA version *before* pinning the PyTorch build.
+- [x] Create the conda environment, clone DiGress into `third_party/digress`, install.
+- [x] Train ConGress on Planar for a few hundred steps to prove the loop runs end to end.
 
-**Gate:** `python main.py dataset=planar` trains, samples, and prints MMD numbers without crashing.
+**Gate:** ✅ passed — trains, samples, and prints MMD numbers without crashing.
 
-## Stage 2 — Evaluation harness we own
+The environment diverges substantially from DiGress's documented recipe, because this is
+Windows without admin rights and a Blackwell (`sm_120`) GPU that requires PyTorch ≥ 2.7 with
+CUDA ≥ 12.8. Six patches were needed; all are recorded in
+`patches/digress-windows-modern-torch.patch` and explained in
+[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md), which is the reference for anything
+environment-related. **Known gap:** SBM validity needs `graph-tool` and is unavailable on
+Windows, so SBM V.U.N. is blocked until we implement the spectral-clustering replacement.
+Planar, which carries the headline result, is unaffected.
+
+## Stage 2 — Evaluation harness we own ✅
 
 Build the evaluator before any of our own models. Every model after this point is immediately
 measurable.
 
-- Extract the DiGress evaluation into `src/eval/`, decoupled from their Lightning module so it
-  scores any list of `networkx` graphs.
-- Build the ORCA binary for orbit counts (needs `g++`; use WSL2 if Windows fights you). If it
-  will not build, drop Orbit and say so explicitly in the report.
-- Add SPECTRE's Wavelet MMD (12 ab-spline kernels via PyGSP), which DiGress omits.
-- Add the training-set self-similarity row and the Ratio summary metric.
+- [x] Extract the DiGress evaluation into **`fald/eval/`** (not `src/eval/` — DiGress installs
+  itself editable as a top-level package named `src`, which our `src` shadowed completely),
+  decoupled from their Lightning module so it scores any list of `networkx` graphs.
+- [x] Build the ORCA binary for orbit counts. Built with conda-forge MinGW g++ 5.3.0, no WSL
+  and no admin needed, so **Orbit is available** and does not have to be dropped.
+- [x] Add SPECTRE's Wavelet MMD (12 ab-spline kernels via PyGSP). Correction: DiGress does not
+  omit it — it vendors `spectral_filter_stats` and leaves the call commented out, so this was
+  re-enabling existing code.
+- [x] Add the training-set self-similarity row and the Ratio summary metric.
 
-**Gate:** MMD calibration passes — train-vs-train near zero, train-vs-Erdős–Rényi large — and
-our Planar training-set row is in the same ballpark as SPECTRE Table 1
-(Deg ~1e-4, Clus ~3e-2, Spec ~5e-3).
+**Gate:** ✅ passed — `python scripts/calibrate_eval.py --dataset planar`. Ordering
+`real-vs-real ≈ 0 < train-vs-test << ER` holds, the ER control is density-matched and scores
+3035× the floor, and our Planar training row (Deg 1.4e-5, Clus 1.7e-2, Spec 4.0e-3) matches
+SPECTRE Table 1's order of magnitude. Details and the full table in
+[docs/EVALUATION.md](docs/EVALUATION.md).
 
-## Stage 3 — Spectral utilities and SignNet
+Also found: DiGress's `process()` appends each graph to `data_list` twice, duplicating its
+processed splits (its logs report 80 test graphs for a 40-graph split). MMD is invariant to
+duplication so their published numbers stand, but `fald.data` does its own processing to avoid
+it.
 
-- `src/data/spectral.py`: normalized Laplacian, eigendecomposition, and band selection for all
-  six arms (`low`, `high`, `random`, `gaussian`, `cluster`, `none`). Adapt from DiGress
-  `extra_features.py`.
-- Cache eigendecompositions to disk. The spectrum never changes during training, so
-  recomputing per epoch is a large silent cost.
-- Implement SignNet for sign-invariant eigenvector encoding, plus random sign-flip augmentation.
+## Stage 3 — Spectral utilities and SignNet ✅
 
-**Gate:** eigendecomposition sanity test passes (`L u = λ u`, `λ ∈ [0,2]`, zero-eigenvalue
-multiplicity equals connected-component count) and SignNet output is invariant to sign flips.
-Produce the `u₂` node-coloring figure for real Planar and SBM graphs — this goes in the report.
+- [x] `fald/data/spectral.py`: normalized Laplacian, eigendecomposition, and band selection for
+  all six arms (`low`, `high`, `random`, `gaussian`, `cluster`, `none`). Written directly
+  against `L_norm` rather than adapted from DiGress `extra_features.py`, which is built for
+  batched masked tensors inside their denoiser rather than per-graph numpy analysis.
+- [x] Cache eigendecompositions to disk, keyed by graph structure so a changed split misses the
+  cache instead of silently returning the wrong spectra.
+- [x] Implement SignNet for sign-invariant eigenvector encoding, plus random sign-flip
+  augmentation.
 
-## Stage 4 — Graph autoencoder
+**Gate:** ✅ passed — `python scripts/spectral_sanity.py`. `‖Lu − λu‖ = 1.2e-15`, `λ ∈ [0,2]`,
+zero-eigenvalue multiplicity equals component count on all 64 graphs, SignNet deviation under
+sign flips is exactly **0.00e+00** (invariant by construction, not by tolerance), permutation
+equivariance 3e-08, cache round-trips bit-exactly. The `u₂` node-colouring figure is at
+`results/figures/u2_node_coloring.png`. Details in [docs/SPECTRAL.md](docs/SPECTRAL.md).
+
+**Caveat the gate uncovered, now fixed:** 3 of 128 SBM graphs (2.3%) are disconnected, so their
+`L_norm` null space is `c`-dimensional and dropping *one* trivial eigenpair is not enough — the
+`low` band then encodes component membership rather than community structure (visible in the
+figure). Since extra zero eigenvalues sit at the bottom of the spectrum this biased the `low`
+arm only, i.e. exactly the low-versus-high comparison that is the headline claim. `select_band`
+now offsets the band by the component count, following DiGress's `get_eigenvalues_features`.
+**SPECTRE does not do this** — its `eigvals[1:]` is hardcoded — so this is a small but genuine
+methodological improvement over the closest prior work, and worth a sentence in the report.
+
+## Stage 3.5 — Tier-0 adjacency diffusion (PRIMARY PATH)
+
+Continuous diffusion directly on the dense adjacency, no autoencoder. This is no longer merely
+insurance: it is the clean primary experiment because every arm diffuses the same full graph and
+only the explicit spectral side channel changes. The implementation, rationale, and current gate
+status are in [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
+
+**Gate:** generated graphs beat a density-matched Erdős–Rényi baseline on Ratio, measured with
+the Stage 2 harness.
+
+**Result:** ✅ passed across the three-seed pilot. `none` Ratio is 327.23 ± 8.80 versus
+density-matched ER around 323–344. This is a weak baseline and has 0% Planar validity, consistent
+with published ConGress, but it is sufficient to test whether the explicit side channel helps.
+
+## Stage 4 — Graph autoencoder investigation ✅ DECISION MADE
 
 - Node latents `Z ∈ R^(n×d_v)` plus pair latents `W ∈ R^(n×n×d_e)`, LGD-style.
 - Reuse DiGress's graph transformer block as the encoder backbone; it already handles node,
@@ -107,11 +163,36 @@ Produce the `u₂` node-coloring figure for real Planar and SBM graphs — this 
 **Gate:** at least 99% edge accuracy on held-out Planar and SBM. Record this as the ceiling and
 plot it on every later results figure. If this fails, nothing downstream is interpretable.
 
-## Stage 5 — Unconditional latent diffusion (the `none` baseline)
+**Both decoder designs are built and measured; neither is usable as-is.** Full write-up in
+[docs/AUTOENCODER.md](docs/AUTOENCODER.md).
 
-- Port LGD's latent DDPM into the DiGress Lightning loop. Continuous Gaussian diffusion,
-  `x₀`-prediction, `T=1000`, cosine schedule, DDIM-200 at sampling.
-- Freeze the Stage 4 autoencoder.
+| decoder | F1 | `Z` eff. rank | verdict |
+|---|---|---|---|
+| `pair` (as specified above) | **1.000** | — | passes the gate by copying: Cohen's d = 13302, a two-point binary code |
+| `node_mlp` (LGD task iii) | 0.194 | 1.04 / 32 | node latents collapse to one direction |
+| `node_mlp` + random node channels | 0.161 | 10.35 / 32 | symmetry broken, still at the base rate |
+
+Two findings drive the decision. First, `WORKPLAN.md` §3.2 specified only one of LGD's **five**
+reconstruction objectives — the single one that permits copying. Second, removing the per-pair
+lane exposes that a permutation-equivariant encoder cannot separate structurally similar nodes on
+featureless near-regular graphs, and LGD's fix for that (RRWP positional encodings) injects
+random-walk spectral structure into the latent, which would contaminate the `none` arm of our own
+frequency study.
+
+**The gate as written was unsafe:** only the degenerate photocopy meets it, because
+reconstruction quality and latent smoothness are in tension (rate–distortion). Any latent design
+we pursue needs the latent-quality diagnostics as pass/fail conditions too.
+
+**Decision:** the pair representation is a valid but scientifically redundant adjacency recoding,
+not an unusable diffusion target. The current node-only design is not viable. Direct adjacency
+diffusion is the primary path, and an LG-Flow-style node-only autoencoder is reserved for a
+reduced transfer ablation after the primary kill gate. No downstream stage is blocked on this AE.
+
+## Stage 5 — Unconditional adjacency diffusion (the `none` baseline)
+
+- Diffuse centered dense adjacency directly with continuous Gaussian diffusion and
+  `x₀`-prediction under a cosine schedule.
+- Reuse DiGress's permutation-equivariant node/edge transformer without an autoencoder.
 
 **Gate:** diffusion round-trip tests pass (`t=0` is identity, `t=T` is approximately standard
 normal), the model overfits a 4-graph batch, and generated graphs beat a density-matched
@@ -121,9 +202,8 @@ Erdős–Rényi baseline on Ratio.
 
 This is the stage that decides whether the project's hypothesis is alive.
 
-- Inject the condition three ways: SignNet eigenvector embedding added to node tokens,
-  eigenvalue MLP as adaLN scale/shift alongside the timestep, and a `U_k diag(λ_k) U_kᵀ`
-  channel added to pair tokens.
+- Inject normalized `U_k diag(λ_k) U_kᵀ` at pair level and normalized eigenvalues globally
+  alongside the timestep. This is sign-invariant and basis-invariant for repeated eigenspaces.
 - Classifier-free guidance: drop the condition with probability 0.1 during training.
 - Train at `low`, `k=8`, using real spectra from held-out test graphs (oracle mode, labelled as
   such — it is a diagnostic, not a generative model).
@@ -133,6 +213,29 @@ This is the stage that decides whether the project's hypothesis is alive.
 
 If this gate is red, **stop**. Conditioning on perfect spectra failing means no downstream work
 will save the hypothesis, and we re-plan rather than push forward.
+
+**Result:** ✅ passed on Planar at `k=8`, three seeds. Ratio: `low` 157.97 ± 16.20, `none`
+327.23 ± 8.80, `high` 339.07 ± 9.18, `random` 326.48 ± 11.75. Paired hierarchical-bootstrap
+95% intervals for `low − none/high/random` are respectively `[-189.43,-152.09]`,
+`[-206.68,-152.42]`, and `[-195.10,-142.21]`. T9 passes under identical noise: 12.95% of edge
+decisions change. Full results: [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
+
+## Stage 6.5 — Discrete direct diffusion validity repair
+
+The continuous model answers the frequency question but all arms have 0% Planar validity.
+This matches ConGress's published result and is a limitation of continuous Gaussian edge noise,
+not evidence against conditioning. Carry the same normalized eigenvalue and
+`U_k diag(λ_k) U_kᵀ` condition into direct discrete DiGress before the full sweep. DiGress keeps
+the no-autoencoder advantage and reports 75% Planar V.U.N.
+
+**Gate:** `none` reproduces non-zero Planar validity, then `low, k=8` retains a statistically
+significant advantage without reducing V.U.N.
+
+**Reduced-pilot result:** ⚠ red on validity. A tested marginal-transition D3PM with DiGress-style
+cycle features improves Ratio (`none` 262.47; `low, k=8` 40.01) but both remain at 0% Planar
+validity after 500 epochs, six layers, and 200 diffusion steps. Published DiGress uses ten layers,
+1,000 steps, all auxiliary features, and orders of magnitude more optimization. Do not call this
+a DiGress reproduction. See [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 ## Stage 7 — The frequency sweep (headline result)
 
@@ -156,8 +259,10 @@ a shaded region — with the `gaussian` capacity control included.
 
 **Gate:** end-to-end sampling works with no ground-truth inputs and beats the `none` baseline.
 
-## Stage 9 — Downstream experiment and remaining controls
+## Stage 9 — Latent transfer, downstream experiment, and remaining controls
 
+- Repeat `none` / `low` / `high` at `k*` with an LG-Flow-style node-only autoencoder. This tests
+  whether the primary adjacency-space finding transfers to a genuinely linear-size latent.
 - SBM community-count classification, 4-way, at 20/40/80 real training graphs, 5 seeds,
   comparing real-only vs real-plus-unconditioned vs real-plus-low-band augmentation. This
   replaces the planar-vs-SBM task from the proposal, which is separable by mean degree alone

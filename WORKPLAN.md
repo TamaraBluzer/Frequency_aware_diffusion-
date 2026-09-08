@@ -1,4 +1,4 @@
-# Workplan — Frequency-Aware Spectral Conditioning for Latent Graph Diffusion (FALD)
+# Workplan — Frequency-Aware Spectral Conditioning for Graph Diffusion (FALD)
 
 **Team:** Tamara Bluzer (315287441), Dan Shamia (208004119), Daniel Halperin (207826314), Itamar Kolodny (211490362)
 **Course:** ML with Graphs, Tel Aviv University
@@ -7,14 +7,20 @@
 
 ## 0. One-paragraph statement of the project
 
-We build a topology-only latent graph diffusion model whose denoiser is conditioned on the
-first `k` non-trivial eigenpairs of the normalized graph Laplacian, and we measure how
+We build a topology-only graph diffusion model whose denoiser is conditioned on selected
+non-trivial eigenpairs of the normalized graph Laplacian, and we measure how
 generation quality varies as a function of `k` and as a function of *which* frequency band
 the conditioning comes from (low / high / random / none). The scientific claim we are
-trying to establish or refute is: **latent graph diffusion benefits specifically from
+trying to establish or refute is: **graph diffusion benefits specifically from an explicit
 low-frequency spectral conditioning, with a measurable and non-monotone optimum in `k`.**
 Every engineering decision below exists to make that claim falsifiable rather than
 decorative.
+
+> **Architecture decision, 5 September 2026.** Direct adjacency diffusion is the primary
+> experiment. The attempted LGD-style pair latent expanded rather than compressed the graph, and
+> the current node-only autoencoder could not reconstruct it. A genuinely linear-size latent is
+> now a secondary transfer experiment, not a dependency. See
+> [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 ---
 
@@ -31,11 +37,10 @@ because several implementation choices exist *only* to preserve these distinctio
 | **SDMG** (Zhu et al., ICML'25) | Shows low-frequency reconstruction beats full-spectrum reconstruction — but for **representation learning** (node/graph classification), with a multi-scale smoothing loss. | SDMG's thesis is that high-frequency detail *hurts* discriminative representations. Generation is the opposite regime: you cannot emit a valid planar graph without high-frequency detail. Our contribution is testing whether SDMG's low-frequency preference **transfers to generation**, where it is *a priori* likely to fail. We expect a non-monotone curve, and we will use SDMG's framing to explain it. We do **not** adopt their smoothing loss (it is a representation-learning objective). |
 
 **The honest novelty sentence for the report:**
-> "Spectral conditioning for graph generation exists (SPECTRE) and latent graph diffusion
-> exists (LGD), but no prior work measures the *frequency-band sensitivity* of a diffusion
-> generator. We provide that measurement, with matched-capacity controls that isolate the
-> contribution of low-frequency structure from the contribution of merely having extra
-> conditioning channels."
+> "GGSD already measures low-versus-high spectral representations in a diffusion generator.
+> We instead measure the *incremental value of an explicit spectral side channel* while the
+> diffusion state continues to carry the full graph, with matched controls that distinguish
+> frequency-specific information from extra conditioning capacity."
 
 ---
 
@@ -52,19 +57,20 @@ biggest way the project can fail. Three modes, all of which we implement:
   generative model, it is a **diagnostic upper bound**. SPECTRE reports this ("real spectra")
   and so will we. Cheap, and it isolates "can the denoiser *use* the condition?" from
   "can we *sample* a valid condition?".
-- **M1 — Cascaded spectral prior (primary).** A small Stage-1 diffusion model generates
-  `(n, λ_k, U_k)`; Stage-2 latent diffusion is conditioned on it. We do **not** use SPECTRE's
+- **M1 — Cascaded spectral prior (end-to-end follow-up).** A small Stage-1 diffusion model generates
+  `(n, λ_k, U_k)`; Stage-2 adjacency diffusion is conditioned on it. We do **not** use SPECTRE's
   Stiefel-manifold machinery (rotation layers, Gumbel-softmax bank of learned Stiefel points).
   Instead we diffuse `U_k` in ambient `R^{n×k}` and project onto the Stiefel manifold with a
   **QR retraction at the final denoising step**, plus a soft orthogonality penalty
   `‖U_kᵀU_k − I_k‖_F²` during training. Simpler, diffusion-native, and a clean point of
   difference.
-- **M2 — Joint conditioning (ablation).** Concatenate the spectral embedding onto the node
-  latent and diffuse `[z_i ‖ ψ_i]` as one token. Removes the cascade entirely. Worth one run
-  because if it works it is the cleanest story; if it doesn't, that's a finding.
+- **M2 — Latent transfer (ablation).** Repeat the selected `none` / `low` / `high` comparison
+  with a genuinely linear-size LG-Flow-style node latent. This asks whether the adjacency-space
+  result transfers to latent diffusion without making the autoencoder a prerequisite.
 
-**Decision:** implement M0 first (Stage 4), M1 as the headline method (Stage 6), M2 last.
-All reported "main results" must be M1. M0 numbers must be clearly labelled as an oracle.
+**Decision:** implement M0 first as the primary frequency diagnostic, M1 only after its kill
+gate passes, and M2 last. M0 numbers must be clearly labelled as oracle-conditioned; M1 is
+required before claiming fully unconditional end-to-end generation.
 
 ### G2 — At `k = 32`, the condition nearly determines the graph
 Planar graphs have `n = 64`. Conditioning on 32 eigenpairs means handing the model half the
@@ -85,10 +91,10 @@ eigenspace is valid. SBM graphs have near-degenerate eigenvalues by construction
 not a corner case. SPECTRE's fix (make the max-abs entry positive) is discontinuous and breaks
 under multiplicity.
 
-**Decision:** encode eigenvectors with **SignNet** — `ρ(Σ_i [φ(u_i) + φ(−u_i)])` — which is
-sign-invariant by construction. Also apply **random sign flipping as training augmentation**
-as a cheap secondary defence. Add a unit test (see §8, T4) that verifies model output is
-invariant to sign flips of the conditioning eigenvectors.
+**Decision:** the primary path uses `U_k diag(λ_k) U_kᵀ`, which is sign-invariant and invariant
+to rotations inside an exactly repeated eigenspace. SignNet remains available for column-wise
+node features, but it closes sign ambiguity only—not general basis ambiguity. Any use of those
+features requires BasisNet/projectors plus the rotation test in T4.
 
 ### G4 — Matched-capacity controls
 "Low-frequency conditioning beats no conditioning" is a weak result if the conditioned model
@@ -141,13 +147,33 @@ gaussian C_k = (k random scalars, N(0,1) matrix in R^{n×k})   # capacity contro
 none    C_k = ∅
 ```
 
-### 3.2 Stage 0 — Graph autoencoder
+### 3.2 Secondary latent transfer — graph autoencoder
 Encoder `E_φ: A → (Z, W)`, `Z ∈ R^{n×d_v}` per-node, `W ∈ R^{n×n×d_e}` per-pair
 (LGD-style augmented edge tensor; `n ≤ 187` so `n²` is affordable at `d_e = 4–8`).
 Backbone: augmented-edge graph transformer, 4–5 layers, hidden 96–128.
 
 Decoder `D_ξ: W → A_hat`, a linear/2-layer-MLP head per pair with BCE loss.
 Symmetrise as `(W_ij + W_ji)/2` before decoding, zero the diagonal.
+
+> **CORRECTION (measured).** This decoder specification is unsafe as written and was implemented
+> literally, with the predicted result. It is LGD's reconstruction task (ii) alone; LGD's paper
+> lists **five** tasks, prefaced "to force the encoder to learn meaningful representations", and
+> task (ii) is the only one that permits the encoder to copy `A_ij` straight into `W_ij` down a
+> private per-pair lane. Measured on Planar: F1 1.000 with Cohen's d of 13302 between the edge
+> and non-edge latent clouds — a two-point binary code, not a manifold, and 32,768 numbers for
+> 2,016 binary decisions, so no compression either.
+>
+> Tasks (i), (iv) and (v) are vacuous for us because our node features are constant, leaving only
+> (iii) — decode `e_ij` from `(z_i, z_j)`. That removes the copy path but exposes a second
+> problem: a permutation-equivariant encoder cannot separate structurally similar nodes on
+> featureless near-regular graphs, so the node latents collapse (effective rank 1.04 of 32).
+> LGD's fix is RRWP positional encodings, which are powers of the normalized adjacency and would
+> leak spectral structure into the latent, contaminating our own `none` arm.
+>
+> See [docs/AUTOENCODER.md](docs/AUTOENCODER.md). Do not re-specify a single per-pair
+> reconstruction head without reading it. This autoencoder is no longer on the primary
+> dependency chain. If the transfer experiment is run, start from LG-Flow's adjacency-identifying
+> node encoder and set-aware decoder rather than tuning the failed endpoint MLP.
 
 Regularization: **LayerNorm on encoder outputs, no KL.** LGD reports that strong KL hurts
 downstream diffusion quality and that LayerNorm works better; we follow that and note it.
@@ -167,29 +193,27 @@ Diffuse `(λ_k ∈ R^k, U_k ∈ R^{n×k})` conditioned on `n`.
   on `λ` (`relu(λ_i − λ_{i+1})`).
 - Final step: QR retraction of `U_k`, sort and clamp `λ_k` into `[0, 2]`.
 
-### 3.4 Stage 2 — Conditional latent diffusion
-Continuous Gaussian diffusion (DDPM formulation, `x₀`-prediction, `T = 1000`, cosine schedule),
-DDIM sampler with 200 steps at inference. Denoiser is a permutation-equivariant
-augmented-edge graph transformer over `(Z_t, W_t)`.
+### 3.4 Primary model — conditional adjacency diffusion
+Continuous Gaussian diffusion directly on centered dense adjacency (DDPM formulation,
+`x₀`-prediction, cosine schedule). The denoiser is a permutation-equivariant augmented-edge graph
+transformer over `A_t`; there is no autoencoder ceiling.
 
-**Conditioning injection (our specific design, distinct from all three papers):**
-1. Eigenvectors → SignNet → per-node vector `ψ_i ∈ R^{d_ψ}`, **added** to node token `z_i`.
-2. Eigenvalues → MLP → global vector `c_λ`, injected as **adaLN** (scale/shift on every
-   layer norm) together with the timestep embedding.
-3. A rank-1 pair-level term `(U_k diag(λ_k) U_kᵀ)_{ij}` added as an extra channel to the pair
-   token `W_ij`. This is the one idea we borrow directly from SPECTRE's `L⁽⁰⁾`, and we should
-   cite it as such.
+**Conditioning injection:**
+1. Eigenvalues are normalized and supplied globally with the timestep.
+2. `(U_k diag(λ_k) U_kᵀ)_{ij}` is normalized to unit RMS and supplied as a pair channel.
+   This is borrowed from SPECTRE's `L⁽⁰⁾` and is invariant to signs and repeated-eigenspace
+   basis rotations.
 
 **Classifier-free guidance:** drop the condition with probability 0.1 during training so we can
 sweep guidance scale `w` at sampling time. None of the four cited papers do CFG on spectral
 conditions; it gives us a free extra axis ("how *hard* should we push the spectral condition?")
 that pairs naturally with the frequency-band question.
 
-### 3.5 Tier-0 de-risking baseline
-Before the latent model works, implement **continuous diffusion directly on the dense
-adjacency** (EDP-GNN/GDSS style, no autoencoder). It is ~150 lines, trains in minutes on
-Planar, and gives us (a) a working evaluation harness, (b) a published-comparable number, and
-(c) an insurance policy if the autoencoder stalls. **Do not skip this.**
+### 3.5 Tier-0 is now the primary path
+Implement **continuous diffusion directly on the dense adjacency** (ConGress/EDP-GNN/GDSS
+style, no autoencoder). It gives us (a) a clean frequency-side-channel experiment, (b) a
+published-comparable number, and (c) no reconstruction confound. The name "Tier-0" is retained
+for continuity, but this is the main model rather than an insurance policy.
 
 ---
 
@@ -198,12 +222,13 @@ Planar, and gives us (a) a working evaluation harness, (b) a published-comparabl
 | Dataset | Spec | Source |
 |---|---|---|
 | **Planar** | 200 graphs, `n = 64`, Delaunay triangulation of uniform random points in the unit square | Regenerate from SPECTRE's recipe |
-| **SBM** | 200 graphs, 2–5 communities (uniform), 20–40 nodes per community (uniform) → `n ∈ [40, 200]`, `p_intra = 0.3`, `p_inter = 0.05` | Regenerate from SPECTRE's recipe |
+| **SBM** | 200 graphs, 2–5 communities (uniform), 20–40 nodes per community (uniform) → `n ∈ [40, 200]`, `p_intra = 0.3`, `p_inter = 0.005` | Use SPECTRE's released artifact |
 
 > **Note a real typo in SPECTRE.** Appendix C states "inter-community edge probability is 0.3
 > and the intra-community edge probability is 0.05," which is inverted — that would produce
 > anti-communities. The community convention (and their own results) require `p_intra = 0.3`,
-> `p_inter = 0.05`. Use the corrected values and put a footnote in the report; catching this
+> while the released generator code uses `p_inter = 0.005`. Use the released artifact and put
+> the prose/code discrepancy in a footnote; catching this
 > is a small but genuine sign of careful work.
 
 **Splits:** 64% train / 16% val / 20% test, fixed seed, serialized to disk as `.pt`, committed
@@ -248,7 +273,7 @@ These are what make the project a *study* rather than a reimplementation.
 - **Spectral consistency error (SCE).** For each generated graph `G_hat`, recompute its first-`k`
   eigenpairs and measure the distance to the condition it was generated from:
   `SCE_λ = ‖λ_k(G_hat) − λ_k^cond‖₂` and
-  `SCE_U = 1 − (1/k)·‖U_k(G_hat)ᵀ U_k^cond‖_F² / k` (subspace alignment, sign/basis-invariant).
+  `SCE_U = 1 − ‖U_k(G_hat)ᵀ U_k^cond‖_F² / k` (subspace alignment, sign/basis-invariant).
   This directly answers "is the model actually *obeying* the condition, or ignoring it?"
   A model with great MMD and terrible SCE is not doing what we claim it is doing.
 - **Condition-information floor** (from G2): reconstruction quality of `A_hat = g(C_k)` at each `k`.
@@ -274,7 +299,8 @@ This is where most course projects lose credibility, so it is non-negotiable:
 
 ## 6. Experiment matrix
 
-Primary grid, run on **both** Planar and SBM:
+Primary grid uses direct adjacency diffusion and runs in full on Planar, with the reduced subset
+on SBM:
 
 | Arm | `k` | Purpose |
 |---|---|---|
@@ -290,7 +316,7 @@ Secondary (single `k*` = best from the low curve):
 - Guidance scale `w ∈ {0, 0.5, 1, 2, 4}`
 - SignNet vs SPECTRE-style sign canonicalization vs no handling
 - `L_norm` vs `L = D − A`
-- Tier-0 (adjacency-space) vs latent diffusion, at `none` and `low, k*`
+- Adjacency-space vs LG-Flow-style latent diffusion, at `none`, `low`, and `high`
 
 Downstream (see G5):
 - SBM community-count classification (4-way), real-only vs +unconditioned vs +low-`k*`
@@ -393,7 +419,7 @@ the failure modes that are otherwise invisible until you have already built ever
 | **R2** | Stage-1 spectral prior generates invalid spectra, so M1 looks worse than `none` and the whole story inverts | Medium-high | This is what M0 (oracle) is for — it separates "denoiser can't use the condition" from "we can't sample conditions." SPECTRE hit exactly this (their Table 3 shows large eigenvector MMD ratios); if we hit it too, that *is* a reportable finding, not a failure |
 | **R3** | ORCA (orbit counts) needs a C++ binary; Windows toolchain pain | Medium | Build under WSL2, or use `networkx`-based graphlet counting for `n ≤ 200` (slower but tractable), or drop Orbit and report the other four with a clear note |
 | **R4** | graph-tool for the SBM validity test won't install on Windows | High | Use the pure-NumPy DiGress-style SBM test as primary (already the plan in §5.2) |
-| **R5** | OneDrive syncs `.git`, checkpoints, and sample tensors → corruption and quota | **High — already applicable** | Move the repo out of `OneDrive - NVIDIA Corporation`, or at minimum exclude `results/`, `checkpoints/`, and `.git` from sync. Add them to `.gitignore` today |
+| **R5** | OneDrive syncs checkpoints and sample tensors → corruption and quota | Mitigated | `FALD_WORK_DIR` holds heavy artifacts; `.gitignore` excludes checkpoints and `*.pt` samples while keeping compact JSON summaries and final figures reviewable |
 | **R6** | 138 runs don't fit on the local GPU | High | Planar sweep runs locally; SBM is the expensive half — measure one run first, then decide between cloud rental and the reduced grid in §6 |
 | **R7** | All arms come out statistically indistinguishable | Medium | Still publishable as a negative result *if* T9 passes and SCE shows the model is genuinely using the condition. The controls are what make a null result credible |
 | **R8** | Four people editing one codebase, merge chaos | Medium | Branch per phase, PR review by one other member, `main` always green on `tests/` |
@@ -407,7 +433,8 @@ fix it or invoke the fallback. The ordering matters more than any calendar — i
 evaluation is built before models (Stage 2) and the hypothesis is stress-tested early (Stage 4).
 
 ### Stage 0 — Setup
-- Move repo out of OneDrive (R5). `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`.
+- Keep the repo path stable; use `FALD_WORK_DIR` for heavy artifacts. Track compact result
+  summaries, but ignore checkpoints, sample tensors, caches, and `wandb/`.
 - Environment: PyTorch + PyG, NetworkX, PyGSP, SciPy, hydra/OmegaConf for configs.
 - Local GPU is the default target. Write down its VRAM, and make the training script
   device-agnostic and checkpoint-resumable from the start so a cloud instance is a drop-in
@@ -432,20 +459,40 @@ model you train from that point on is immediately measurable.
   order of magnitude on regenerated Planar/SBM data. Exact match is not expected (different
   random data), but Deg ≈ 1e-4, Clus ≈ 3e-2, Spec ≈ 5e-3 should be roughly recovered.
 
-### Stage 3 — Tier-0 adjacency diffusion
-- Unconditional continuous diffusion on dense `A`, on Planar only.
+### Stage 3 — Primary adjacency diffusion
+- Unconditional continuous diffusion on dense `A`, on Planar first.
 - **Gate:** T8, T10 pass. Generated graphs are visually graph-like and beat an Erdős–Rényi
   baseline of matched density on Ratio. This proves the diffusion plumbing works.
 
-### Stage 4 — Autoencoder + unconditional latent diffusion + M0 oracle
-- Train AE to the T7 gate. Freeze it.
-- Unconditional latent diffusion (`none` arm) — this is Baseline #1 for the whole paper.
-- Add conditioning path (SignNet + adaLN + rank-1 pair channel), run **M0 oracle** at `low, k=8`.
-- **Gate:** T2, T4, T7, T9 pass. M0-oracle at `k=8` beats `none` on Ratio with non-overlapping
+**Status:** passed for the narrow Ratio gate. Three-seed `none` Ratio is 327.23 ± 8.80 and
+generated density matches the data. Planar validity remains 0%, consistent with published
+ConGress.
+
+### Stage 4 — M0 oracle conditioning
+- Add normalized eigenvalue and `U_k diag(λ_k) U_kᵀ` condition paths to adjacency diffusion.
+- Run **M0 oracle** at `low, k=8` against the parameter-matched `none` model.
+- **Gate:** T2, T4, T9 pass. M0-oracle at `k=8` beats `none` on Ratio with non-overlapping
   3-seed error bars. **This is the kill-gate.** If conditioning on *perfect* spectra cannot beat
   the unconditioned baseline, the hypothesis is dead and no amount of downstream work will save
   it. This stage is placed early for exactly that reason — a red gate here means pivot, and it
   is far cheaper to pivot before the sweep than after.
+
+**Status:** passed. `low` Ratio is 157.97 ± 16.20 versus `none` 327.23 ± 8.80, `high`
+339.07 ± 9.18, and `random` 326.48 ± 11.75. Every paired hierarchical-bootstrap 95% interval
+for `low − control` excludes zero. Under identical noise, the low condition changes 12.95% of
+edge decisions. See [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
+
+### Stage 4.5 — Discrete validity repair
+- Port the same condition adapter to direct discrete DiGress.
+- Keep continuous adjacency diffusion as the controlled diagnostic baseline.
+- **Gate:** non-zero Planar V.U.N. for `none`; `low, k=8` preserves its measured advantage
+  without reducing validity. Do not run the full `k` sweep while every V.U.N. value is zero.
+
+**Reduced-pilot status:** Ratio improves substantially (`none` 262.47, `low, k=8` 40.01), but
+both have 0% Planar validity. The implementation uses a mathematically tested marginal-transition
+D3PM plus DiGress-style cycle features, but only six layers, 200 steps, and 500 epochs. This does
+not reproduce the published ten-layer, 1,000-step, all-feature, very-long-budget DiGress result.
+The gate remains red pending a compute/scope decision.
 
 ### Stage 5 — The frequency sweep
 - All six arms × `k ∈ {2,4,8,16,32}` on Planar, 3 seeds, still under M0 oracle conditioning
@@ -464,6 +511,7 @@ model you train from that point on is immediately measurable.
 - **Gate:** M1 is a functioning generative model (no oracle inputs) and beats `none`.
 
 ### Stage 7 — Downstream + controls
+- LG-Flow-style latent transfer at `none` / `low` / `high` and `k*`.
 - SBM community-count augmentation experiment (G5), 5 seeds.
 - DualDiff-style cluster-conditioning arm.
 - Laplacian variant ablation, SignNet ablation, M2 joint-conditioning if time permits.
@@ -479,7 +527,7 @@ model you train from that point on is immediately measurable.
 
 If the project has to shrink, cut in this order and say so in the report:
 
-1. Stage 7 extras (cluster-conditioning arm, Laplacian variant, M2 joint conditioning)
+1. Stage 7 extras (cluster-conditioning arm, Laplacian variant, latent transfer)
 2. The SBM half of the frequency sweep — keep Planar, which carries the headline figure
 3. Stage 6, reporting M0-oracle results only and labelling the study as oracle-conditioned
    throughout
@@ -527,10 +575,8 @@ Short recurring sync; the only standing agenda item is "which gate are we at and
 
 ## 13. Immediate next actions
 
-1. Move the repo off OneDrive (R5) and add `.gitignore`.
-2. Agree on the six decisions in §2 (G1–G6) — 30-minute meeting, record the outcomes in this file.
-3. Assign owners per §11.
-4. Start Stage 0 and Stage 1 in parallel; Stage 2 (evaluation) starts as soon as Stage 1's data
-   generator produces graphs.
-5. Benchmark one SBM training run on the local GPU early, so the cloud-vs-reduced-grid decision
-   in §6 is made on measured numbers rather than guesses.
+1. Pass the unconditional Planar adjacency-diffusion gate against density-matched ER.
+2. Run the three-seed oracle `low, k=8` kill gate against `none`.
+3. Add shuffled-real and geometry-matched random controls before the full frequency sweep.
+4. Implement basis-safe conditioning for any path that consumes eigenvectors separately.
+5. Benchmark one SBM adjacency-diffusion run before deciding on the reduced grid.

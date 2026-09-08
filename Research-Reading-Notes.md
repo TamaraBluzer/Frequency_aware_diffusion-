@@ -1,6 +1,18 @@
 # Frequency-aware diffusion: reading record
 
-Review date: 5 September 2026. This records source reading and static code inspection, not reproduced experimental results. Implementation has not started. The requested reading is **incomplete because DualDiff is inaccessible**.
+Review date: 5 September 2026. This records source reading and static code inspection, not
+reproduced experimental results. **Historical-status correction:** implementation has now
+started, and direct adjacency diffusion is the primary experiment. The original requested
+reading remains incomplete because DualDiff was inaccessible at review time.
+
+Subsequent literature review found two load-bearing references that must be added to the report:
+
+- **GGSD (ICLR 2025)** already sweeps smallest versus largest eigenpairs on Planar and SBM. Our
+  novelty claim is therefore the incremental value of a matched spectral *side channel*, not the
+  first frequency-band sensitivity study.
+- **LG-Flow (2026)** demonstrates near-lossless, linear-size node latents on Planar using
+  adjacency-identifying Laplacian positional encodings and a set-aware decoder. It is the starting
+  point for the optional latent transfer ablation.
 
 ## Coverage and sources
 
