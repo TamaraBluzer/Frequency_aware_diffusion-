@@ -1,0 +1,130 @@
+{
+  "seed": 0,
+  "k": 8,
+  "planar_eig": {
+    "max_eig_residual": 1.1761425167122752e-15,
+    "max_range_violation": 0.0,
+    "component_mismatches": 0,
+    "max_null_space_residual": 2.1747095713418623e-16,
+    "max_u1_misalignment_connected": 1.1102230246251565e-16,
+    "disconnected_graphs": 0,
+    "n_graphs": 32
+  },
+  "sbm_eig": {
+    "max_eig_residual": 1.1934897514720433e-15,
+    "max_range_violation": 8.881784197001252e-16,
+    "component_mismatches": 0,
+    "max_null_space_residual": 1.9335747993138827e-16,
+    "max_u1_misalignment_connected": 3.3306690738754696e-16,
+    "disconnected_graphs": 1,
+    "n_graphs": 32
+  },
+  "bands": {
+    "shapes": {
+      "low": [
+        [
+          8
+        ],
+        [
+          64,
+          8
+        ]
+      ],
+      "high": [
+        [
+          8
+        ],
+        [
+          64,
+          8
+        ]
+      ],
+      "random": [
+        [
+          8
+        ],
+        [
+          64,
+          8
+        ]
+      ],
+      "gaussian": [
+        [
+          8
+        ],
+        [
+          64,
+          8
+        ]
+      ],
+      "none": [
+        [
+          0
+        ],
+        [
+          64,
+          0
+        ]
+      ]
+    },
+    "low_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "high_indices": [
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63
+    ],
+    "low_eigval_max": 0.4078768217580617,
+    "high_eigval_min": 1.429897865131292
+  },
+  "disconnected": {
+    "n_nodes": 56,
+    "n_components": 2,
+    "ours_indices": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "ours_min_eigval": 0.48767529850061875,
+    "spectre_style_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "spectre_style_min_eigval": 2.4424906541753444e-15,
+    "spectre_style_wasted_slots": 1
+  },
+  "signnet": {
+    "max_sign_deviation": 0.0,
+    "max_perm_deviation": 2.9802322387695312e-08
+  },
+  "cache": {
+    "cache_self_delta": 0.0,
+    "cache_vs_direct_delta": 0.0
+  },
+  "figure": "C:\\Users\\dhalperin\\OneDrive - NVIDIA Corporation\\Documents\\University\\ML With Graphs\\FinalProject\\results\\figures\\u2_node_coloring.png",
+  "failures": []
+}

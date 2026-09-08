@@ -1,0 +1,10 @@
+{
+  "dataset": "planar",
+  "band": "low",
+  "k": 8,
+  "seed": 0,
+  "n_graphs": 8,
+  "mean_absolute_prediction_delta": 0.16152730584144592,
+  "same_noise_edge_edit_fraction": 0.1295263022184372,
+  "passed": true
+}

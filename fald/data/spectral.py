@@ -83,7 +83,8 @@ def normalized_laplacian(graph: nx.Graph) -> np.ndarray:
     with np.errstate(divide="ignore"):
         inv_sqrt = np.where(degrees > 0, 1.0 / np.sqrt(degrees), 0.0)
     normalized = adjacency * inv_sqrt[:, None] * inv_sqrt[None, :]
-    return np.eye(len(degrees)) - normalized
+    active_diagonal = np.diag((degrees > 0).astype(float))
+    return active_diagonal - normalized
 
 
 def eigendecomposition(graph: nx.Graph) -> tuple[np.ndarray, np.ndarray]:
@@ -198,11 +199,13 @@ def cluster_condition(graph: nx.Graph, n_clusters: int, seed: int = 0) -> np.nda
 
 
 def _cache_key(graphs: Sequence[nx.Graph], tag: str) -> str:
-    """Hash graph structure, not object identity, so the cache survives reloading."""
+    """Hash exact ordered adjacency, because eigenvector rows follow node order."""
     digest = hashlib.sha256(tag.encode())
     for graph in graphs:
-        digest.update(str(graph.number_of_nodes()).encode())
-        digest.update(nx.weisfeiler_lehman_graph_hash(graph).encode())
+        node_order = list(graph.nodes())
+        adjacency = nx.to_numpy_array(graph, nodelist=node_order, dtype=np.uint8)
+        digest.update(np.asarray(adjacency.shape, dtype=np.int64).tobytes())
+        digest.update(adjacency.tobytes())
     return digest.hexdigest()[:16]
 
 

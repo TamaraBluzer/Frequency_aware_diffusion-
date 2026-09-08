@@ -16,8 +16,11 @@ env/
 .env
 
 # --- Experiment outputs ---
-# Never commit these: they are large, regenerable, and cause merge conflicts.
-results/
+# Keep compact JSON summaries and final figures reviewable; ignore heavy run artifacts.
+results/*
+!results/*.json
+!results/figures/
+!results/figures/*.png
 checkpoints/
 outputs/
 logs/

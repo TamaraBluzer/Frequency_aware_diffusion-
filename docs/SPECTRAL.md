@@ -41,8 +41,14 @@ claim falsifiable rather than a statement about parameter count (WORKPLAN G4).
 Sign invariance is structural, not learned: `φ(u) + φ(−u)` is symmetric in the sign of `u`, so
 flipping any column cannot change the output. The gate measures a deviation of exactly
 `0.00e+00` — bitwise identical, not merely within tolerance. SPECTRE's alternative (force the
-max-magnitude entry positive) is discontinuous and breaks under eigenvalue multiplicity, which
-SBM graphs exhibit by construction.
+max-magnitude entry positive) is discontinuous.
+
+**Correction:** SignNet is not invariant to arbitrary rotations inside a repeated eigenspace.
+That requires BasisNet or projector features such as `U_g U_gᵀ`. The existing gate proves sign
+invariance only; it does not close the basis-ambiguity half of WORKPLAN G3. The new primary
+adjacency-diffusion path consumes `U_k diag(λ_k) U_kᵀ`, which is basis-invariant within an exactly
+repeated eigenspace. Any later path that consumes columns separately must add the missing rotation
+test.
 
 `φ` never sees a node index, so the encoder is permutation equivariant (measured `3e-08`,
 float32 rounding). Outputs are concatenated over `j` rather than summed, because the frequency
@@ -55,9 +61,9 @@ index is meaningful and ordered — summing would discard exactly the structure 
 
 `cached_eigendecompositions` memoizes to `data/cache/` as compressed `.npz`. The spectrum of a
 training graph never changes, so recomputing it every epoch is a large silent cost. The cache
-key hashes graph *structure* (Weisfeiler–Lehman hash plus node count), not object identity, so a
-changed split misses the cache rather than silently returning the wrong spectra. Verified to
-round-trip bit-exactly.
+key hashes the exact adjacency bytes in the node order used by the eigenvector rows. An earlier
+Weisfeiler–Lehman key was isomorphism-invariant and could therefore return eigenvectors in the
+wrong row order for a permuted copy of the same graph. Verified to round-trip bit-exactly.
 
 ## Gate
 

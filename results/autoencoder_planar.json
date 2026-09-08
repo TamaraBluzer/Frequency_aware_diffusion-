@@ -1,0 +1,102 @@
+{
+  "dataset": "planar",
+  "eval_split": "test",
+  "seed": 0,
+  "config": {
+    "d_v": 32,
+    "d_e": 8,
+    "n_layers": 4,
+    "dx": 128,
+    "de": 64,
+    "dy": 64,
+    "n_head": 8,
+    "dim_ffX": 256,
+    "dim_ffE": 128,
+    "dim_ffy": 128,
+    "dropout": 0.0,
+    "decoder": "pair",
+    "decoder_hidden": 128,
+    "jitter_sigma": 0.05,
+    "node_random_dim": 0
+  },
+  "n_params": 1151033,
+  "pos_weight": 10.329025007024445,
+  "epochs": 60,
+  "minutes": 0.7253697633743286,
+  "best": {
+    "epoch": 20,
+    "loss": 0.5810271739959717,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "n_pairs": 80640,
+    "n_edges": 7118,
+    "positive_rate": 0.08826884920634921
+  },
+  "permutation": {
+    "delta_Z": 9.685754776000977e-07,
+    "delta_W": 5.960464477539062e-07,
+    "delta_logits": 1.430511474609375e-06
+  },
+  "latent_quality": {
+    "latent": "W (per-pair)",
+    "Z_mean": -1.1920929132713809e-08,
+    "Z_std": 0.9999873042106628,
+    "Z_absmax": 2.36163067817688,
+    "Z_effective_rank": 1.021949052810669,
+    "Z_dim": 32,
+    "W_mean": -0.00021427642786875367,
+    "W_std": 1.0170962810516357,
+    "W_absmax": 1.5723628997802734,
+    "edge_vs_nonedge_cohens_d": 50799.109375,
+    "f1_under_latent_noise": {
+      "sigma_0.0": 1.0,
+      "sigma_0.05": 1.0,
+      "sigma_0.1": 1.0,
+      "sigma_0.25": 1.0,
+      "sigma_0.5": 1.0,
+      "sigma_1.0": 0.9989452218550032
+    },
+    "verdict": "degenerate-binary-code"
+  },
+  "history": [
+    {
+      "epoch": 20,
+      "train_loss": 0.6273656189441681,
+      "loss": 0.5810271739959717,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "n_pairs": 80640,
+      "n_edges": 7118,
+      "positive_rate": 0.08826884920634921
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.05697124823927879,
+      "loss": 0.05496757850050926,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "n_pairs": 80640,
+      "n_edges": 7118,
+      "positive_rate": 0.08826884920634921
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.03991577588021755,
+      "loss": 0.039894679188728334,
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "n_pairs": 80640,
+      "n_edges": 7118,
+      "positive_rate": 0.08826884920634921
+    }
+  ],
+  "failures": []
+}

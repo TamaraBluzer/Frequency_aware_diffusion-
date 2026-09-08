@@ -1,0 +1,49 @@
+{
+  "dataset": "planar",
+  "seed": 0,
+  "metrics": [
+    "degree",
+    "clustering",
+    "spectral",
+    "wavelet",
+    "orbit"
+  ],
+  "rows": {
+    "train vs test": {
+      "mmd": {
+        "degree": 1.4240947673993531e-05,
+        "clustering": 0.01649608742862696,
+        "spectral": 0.003975549521027855,
+        "wavelet": 0.000600572429813262,
+        "orbit": 0.00013575312333591327
+      },
+      "ratio": 1.0
+    },
+    "train[:h] vs train[h:]": {
+      "mmd": {
+        "degree": 9.560389045959461e-05,
+        "clustering": 0.0309093350209515,
+        "spectral": 0.0032225957043834352,
+        "wavelet": 0.0010248306689879527,
+        "orbit": 0.0019785890889971736
+      },
+      "ratio": null
+    },
+    "ER(matched) vs test": {
+      "mmd": {
+        "degree": 0.05495430443268301,
+        "clustering": 0.36601062380490784,
+        "spectral": 0.08437916888796271,
+        "wavelet": 0.3688097584788079,
+        "orbit": 1.4470823798271104
+      },
+      "ratio": 3035.212972642016
+    }
+  },
+  "spectre_reference_row": {
+    "degree": 0.0002,
+    "clustering": 0.031,
+    "spectral": 0.005
+  },
+  "failures": []
+}

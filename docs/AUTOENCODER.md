@@ -1,8 +1,10 @@
 # Stage 4 — graph autoencoder: what we found
 
-**Status: blocked on a design decision, not on code.** Both decoder designs were built and
-measured. One passes the gate but is degenerate; the other is honest but does not train. There
-is no cheap middle ground, and the reason is structural.
+**Status: decision made on 5 September 2026.** Both decoder designs were built and measured.
+One passes the gate by copying; the other is honest but does not train. Direct adjacency
+diffusion is now the primary frequency experiment, so the autoencoder no longer blocks the
+project. A genuinely linear-size LG-Flow-style node latent is a later transfer ablation. See
+[ADJACENCY_DIFFUSION.md](ADJACENCY_DIFFUSION.md).
 
 ## Results
 
@@ -38,9 +40,10 @@ gradient path, and that is what gradient descent finds.
 
 Measured consequences: Cohen's d of **50799** between the edge and non-edge latent clouds (a
 "large" effect is 0.8), and F1 of 0.9989 under latent noise of σ=1.0 — noise as large as the
-latent's own standard deviation. That is a two-point binary code, not a manifold. Gaussian
-diffusion in it would have nowhere to land, and it is 32,768 numbers encoding 2,016 binary
-decisions, so it provides no compression either.
+latent's own standard deviation. That is a two-point binary code, not a useful compressed
+manifold. Gaussian diffusion can model such a bimodal target—ConGress directly demonstrates
+this—but then `W` is merely an expensive learned recoding of adjacency: 32,768 numbers encoding
+2,016 binary decisions.
 
 `WORKPLAN.md` §3.2 specified exactly one reconstruction objective. LGD's paper lists **five**,
 introduced with "to force the encoder to learn meaningful representations" — they knew this trap
@@ -52,7 +55,8 @@ lane. Our plan kept only the one that permits copying.
 Removing the per-pair lane makes copying arithmetically impossible, which was the goal. It also
 exposes a harder problem the `pair` decoder was hiding.
 
-**A permutation-equivariant encoder must give structurally similar nodes similar latents.** Our
+**A finite-depth permutation-equivariant encoder tends to give structurally similar nodes similar
+latents.** Our
 graphs are topology-only (constant node features) and near-regular (planar degrees 3–10, mean
 5.5), so with degree as the only node input every latent collapses onto one direction:
 effective rank **1.04 of 32**, across-node standard deviation 0.007, mean pairwise distance
@@ -90,12 +94,10 @@ worse still, being exactly the quantity under study.
 
 ## Options
 
-1. **Tier-0 adjacency diffusion.** Continuous diffusion directly on the dense adjacency, no
-   autoencoder, ~150 lines. Sidesteps all of the above: no latent to collapse, no PEs, no
-   leakage, and the denoiser sees exactly the conditioning we choose to give it. `WORKPLAN.md`
-   §3.5 already specifies this and says **"Do not skip this"** — and `PLAN.md` omits it entirely
-   from the ten-stage sequence. Latent diffusion then becomes the ablation `WORKPLAN.md` line 293
-   already plans, rather than a prerequisite.
+1. **Primary adjacency diffusion — selected.** Continuous diffusion directly on the dense
+   adjacency, no autoencoder. It sidesteps reconstruction and lets the denoiser see exactly the
+   side condition selected by the experiment. Latent diffusion becomes a transfer ablation
+   rather than a prerequisite.
 2. **Node latent + random node features.** Does not leak spectral information, and is viable in
    principle because the encoder is not needed at sampling time — only the decoder is. Costs:
    the same graph maps to many latents, broadening the diffusion target, and it does not
@@ -105,8 +107,9 @@ worse still, being exactly the quantity under study.
 4. **Keep the `pair` latent**, document that it is a recoding rather than a compression, and let
    the Tier-0 comparison quantify what the latent buys (probably nothing).
 
-Recommendation: **option 1**, with the current `pair` and `node_mlp` results kept as a measured
-ablation. The research question does not require a latent at all.
+Decision: **option 1**, with the current `pair` and `node_mlp` results kept as measured
+ablations. If a latent transfer run is attempted, use LG-Flow's adjacency-identifying node
+encoder and row-wise DeepSet decoder rather than further tuning the current endpoint MLP.
 
 ## A gate that rewards the wrong thing
 

@@ -1,0 +1,162 @@
+{
+  "dataset": "planar",
+  "band": "low",
+  "k": 8,
+  "seed": 2,
+  "config": {
+    "timesteps": 100,
+    "condition_k": 8,
+    "condition_drop_probability": 0.1,
+    "time_dim": 64,
+    "n_layers": 4,
+    "dx": 128,
+    "de": 64,
+    "dy": 128,
+    "n_head": 8,
+    "dim_ffX": 256,
+    "dim_ffE": 128,
+    "dim_ffy": 256,
+    "dropout": 0.0,
+    "cosine_offset": 0.008
+  },
+  "n_parameters": 1833473,
+  "positive_weight": 1.0,
+  "class_balance_weight": 10.336291349997804,
+  "best": {
+    "epoch": 190,
+    "validation_loss": 0.058226773515343666
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.45528053864836693,
+      "validation_loss": 0.16083747148513794
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.07853585667908192,
+      "validation_loss": 0.07752153649926186
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.07117684837430716,
+      "validation_loss": 0.08538554236292839
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.08180415537208319,
+      "validation_loss": 0.06141863949596882
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.08454772783443332,
+      "validation_loss": 0.07977274060249329
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.07783808838576078,
+      "validation_loss": 0.06169334426522255
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.08154107443988323,
+      "validation_loss": 0.05952231585979462
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.07417474500834942,
+      "validation_loss": 0.06704450026154518
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.0690957703627646,
+      "validation_loss": 0.07181043922901154
+    },
+    {
+      "epoch": 90,
+      "train_loss": 0.07081710174679756,
+      "validation_loss": 0.06021073833107948
+    },
+    {
+      "epoch": 100,
+      "train_loss": 0.07574091805145144,
+      "validation_loss": 0.08393735438585281
+    },
+    {
+      "epoch": 110,
+      "train_loss": 0.07495938893407583,
+      "validation_loss": 0.0677223652601242
+    },
+    {
+      "epoch": 120,
+      "train_loss": 0.08928214572370052,
+      "validation_loss": 0.059284305199980736
+    },
+    {
+      "epoch": 130,
+      "train_loss": 0.08076335350051522,
+      "validation_loss": 0.07554775476455688
+    },
+    {
+      "epoch": 140,
+      "train_loss": 0.08092616079375148,
+      "validation_loss": 0.061143895611166954
+    },
+    {
+      "epoch": 150,
+      "train_loss": 0.08652523392811418,
+      "validation_loss": 0.05974016152322292
+    },
+    {
+      "epoch": 160,
+      "train_loss": 0.07621224783360958,
+      "validation_loss": 0.06329526007175446
+    },
+    {
+      "epoch": 170,
+      "train_loss": 0.07622270658612251,
+      "validation_loss": 0.08989565819501877
+    },
+    {
+      "epoch": 180,
+      "train_loss": 0.0778226675465703,
+      "validation_loss": 0.08610869944095612
+    },
+    {
+      "epoch": 190,
+      "train_loss": 0.07901111943647265,
+      "validation_loss": 0.058226773515343666
+    },
+    {
+      "epoch": 200,
+      "train_loss": 0.07103616744279861,
+      "validation_loss": 0.06822422705590725
+    }
+  ],
+  "generated_density_mean": 0.0890842013888889,
+  "generated_density_std": 0.00478172315808011,
+  "evaluation": {
+    "mmd/degree": 0.04385428404591907,
+    "mmd/clustering": 0.36873331272914106,
+    "mmd/spectral": 0.0505515551925515,
+    "mmd/wavelet": 0.13306526938569752,
+    "mmd/orbit": 0.7635210434325139,
+    "vun/valid": 0.0,
+    "vun/unique": 1.0,
+    "vun/novel": 1.0,
+    "vun/vun": 0.0,
+    "ratio/degree": 195.4980177877714,
+    "ratio/clustering": 14.903648237692948,
+    "ratio/spectral": 7.177358293562848,
+    "ratio/wavelet": 127.19418716840987,
+    "ratio/orbit": 537.4357438212602,
+    "ratio": 176.44179106173948,
+    "n_generated": 32,
+    "n_reference": 32
+  },
+  "er_ratio": 343.89056698981176,
+  "gate_passed": true,
+  "training_minutes": 2.169003760814667,
+  "evaluation_minutes": 2.313142697016398,
+  "samples_path": "C:\\Users\\dhalperin\\OneDrive - NVIDIA Corporation\\Documents\\University\\ML With Graphs\\FinalProject\\results\\adjacency_diffusion_planar_low_k8_seed2_samples.pt"
+}

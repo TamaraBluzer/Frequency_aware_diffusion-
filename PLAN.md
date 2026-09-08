@@ -1,9 +1,10 @@
 # Frequency-Aware Latent Graph Diffusion (FALD) — Staged Implementation Plan
 
-**Goal.** Build a topology-only latent graph diffusion model whose denoiser is conditioned on
-the first `k` non-trivial eigenpairs of the normalized graph Laplacian, and measure how
-generation quality varies with `k` and with which frequency band the conditioning comes from
-(low / high / random / none).
+**Goal.** Build a topology-only graph diffusion model whose denoiser is conditioned on selected
+non-trivial eigenpairs of the normalized graph Laplacian, and measure how generation quality
+varies with `k` and frequency band (low / high / random / none). As of 5 September 2026, direct
+adjacency diffusion is the primary experiment; latent diffusion is a transfer ablation rather
+than a prerequisite. See [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 Design rationale, the six closed design gaps (G1–G6), the full test list, and the risk register
 live in [WORKPLAN.md](WORKPLAN.md). **This document is the execution order:** ten small stages,
@@ -16,12 +17,14 @@ each ending in a gate that must pass before moving on.
 - [x] **Stage 1** — Environment and a working DiGress
 - [x] **Stage 2** — Evaluation harness we own
 - [x] **Stage 3** — Spectral utilities and SignNet
-- [ ] **Stage 4** — Graph autoencoder
-- [ ] **Stage 5** — Unconditional latent diffusion (`none` baseline)
-- [ ] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE)**
+- [x] **Stage 3.5** — Primary continuous adjacency diffusion (`none` baseline)
+- [x] **Stage 4** — Graph autoencoder investigation (production path rejected)
+- [x] **Stage 5** — Unconditional adjacency diffusion quality gate
+- [x] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE PASSED)**
+- [ ] **Stage 6.5** — Transfer conditioning to discrete DiGress for valid generation
 - [ ] **Stage 7** — The frequency sweep (headline result)
 - [ ] **Stage 8** — Learned spectral prior
-- [ ] **Stage 9** — Downstream experiment and remaining controls
+- [ ] **Stage 9** — Latent transfer, downstream experiment, and remaining controls
 - [ ] **Stage 10** — Report
 
 ---
@@ -66,7 +69,8 @@ Laplacian eigenfeatures to its denoiser without studying which band or how many.
   live at `C:\dev\fald-work` via `FALD_WORK_DIR` — 192 MB of churn out of the synced tree, 11 MB
   left in it. The 260-character path limit turned out to be moot since PyG installs from wheels.
   See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
-- [x] `.gitignore` for `results/`, `checkpoints/`, `*.pt`, `wandb/`, `data/`, `third_party/`.
+- [x] `.gitignore` for checkpoints, samples (`*.pt`), caches, `wandb/`, data, and
+  `third_party/`. Compact `results/*.json` summaries and final figures remain reviewable.
 - [x] Detect GPU and CUDA version *before* pinning the PyTorch build.
 - [x] Create the conda environment, clone DiGress into `third_party/digress`, install.
 - [x] Train ConGress on Planar for a few hundred steps to prove the loop runs end to end.
@@ -134,18 +138,21 @@ now offsets the band by the component count, following DiGress's `get_eigenvalue
 **SPECTRE does not do this** — its `eigvals[1:]` is hardcoded — so this is a small but genuine
 methodological improvement over the closest prior work, and worth a sentence in the report.
 
-## Stage 3.5 — Tier-0 adjacency diffusion (MISSING FROM THIS PLAN, DO NOT SKIP)
+## Stage 3.5 — Tier-0 adjacency diffusion (PRIMARY PATH)
 
-Continuous diffusion directly on the dense adjacency, no autoencoder, ~150 lines. `WORKPLAN.md`
-§3.5 specifies this and says "Do not skip this"; it was omitted from this ten-stage sequence by
-mistake. It gives a working generative baseline in minutes, a published-comparable number, and
-lets the frequency sweep run without depending on the autoencoder at all — which matters because
-Stage 4 is currently blocked (see [docs/AUTOENCODER.md](docs/AUTOENCODER.md)).
+Continuous diffusion directly on the dense adjacency, no autoencoder. This is no longer merely
+insurance: it is the clean primary experiment because every arm diffuses the same full graph and
+only the explicit spectral side channel changes. The implementation, rationale, and current gate
+status are in [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 **Gate:** generated graphs beat a density-matched Erdős–Rényi baseline on Ratio, measured with
 the Stage 2 harness.
 
-## Stage 4 — Graph autoencoder ⚠ BLOCKED ON A DESIGN DECISION
+**Result:** ✅ passed across the three-seed pilot. `none` Ratio is 327.23 ± 8.80 versus
+density-matched ER around 323–344. This is a weak baseline and has 0% Planar validity, consistent
+with published ConGress, but it is sufficient to test whether the explicit side channel helps.
+
+## Stage 4 — Graph autoencoder investigation ✅ DECISION MADE
 
 - Node latents `Z ∈ R^(n×d_v)` plus pair latents `W ∈ R^(n×n×d_e)`, LGD-style.
 - Reuse DiGress's graph transformer block as the encoder backbone; it already handles node,
@@ -172,18 +179,20 @@ featureless near-regular graphs, and LGD's fix for that (RRWP positional encodin
 random-walk spectral structure into the latent, which would contaminate the `none` arm of our own
 frequency study.
 
-**The gate as written is also unsafe:** only the degenerate photocopy meets it, because
+**The gate as written was unsafe:** only the degenerate photocopy meets it, because
 reconstruction quality and latent smoothness are in tension (rate–distortion). Any latent design
 we pursue needs the latent-quality diagnostics as pass/fail conditions too.
 
-Recommended path: do **Stage 3.5 (Tier-0)** first and treat latent diffusion as the ablation
-`WORKPLAN.md` line 293 already plans. The research question does not require a latent.
+**Decision:** the pair representation is a valid but scientifically redundant adjacency recoding,
+not an unusable diffusion target. The current node-only design is not viable. Direct adjacency
+diffusion is the primary path, and an LG-Flow-style node-only autoencoder is reserved for a
+reduced transfer ablation after the primary kill gate. No downstream stage is blocked on this AE.
 
-## Stage 5 — Unconditional latent diffusion (the `none` baseline)
+## Stage 5 — Unconditional adjacency diffusion (the `none` baseline)
 
-- Port LGD's latent DDPM into the DiGress Lightning loop. Continuous Gaussian diffusion,
-  `x₀`-prediction, `T=1000`, cosine schedule, DDIM-200 at sampling.
-- Freeze the Stage 4 autoencoder.
+- Diffuse centered dense adjacency directly with continuous Gaussian diffusion and
+  `x₀`-prediction under a cosine schedule.
+- Reuse DiGress's permutation-equivariant node/edge transformer without an autoencoder.
 
 **Gate:** diffusion round-trip tests pass (`t=0` is identity, `t=T` is approximately standard
 normal), the model overfits a 4-graph batch, and generated graphs beat a density-matched
@@ -193,9 +202,8 @@ Erdős–Rényi baseline on Ratio.
 
 This is the stage that decides whether the project's hypothesis is alive.
 
-- Inject the condition three ways: SignNet eigenvector embedding added to node tokens,
-  eigenvalue MLP as adaLN scale/shift alongside the timestep, and a `U_k diag(λ_k) U_kᵀ`
-  channel added to pair tokens.
+- Inject normalized `U_k diag(λ_k) U_kᵀ` at pair level and normalized eigenvalues globally
+  alongside the timestep. This is sign-invariant and basis-invariant for repeated eigenspaces.
 - Classifier-free guidance: drop the condition with probability 0.1 during training.
 - Train at `low`, `k=8`, using real spectra from held-out test graphs (oracle mode, labelled as
   such — it is a diagnostic, not a generative model).
@@ -205,6 +213,29 @@ This is the stage that decides whether the project's hypothesis is alive.
 
 If this gate is red, **stop**. Conditioning on perfect spectra failing means no downstream work
 will save the hypothesis, and we re-plan rather than push forward.
+
+**Result:** ✅ passed on Planar at `k=8`, three seeds. Ratio: `low` 157.97 ± 16.20, `none`
+327.23 ± 8.80, `high` 339.07 ± 9.18, `random` 326.48 ± 11.75. Paired hierarchical-bootstrap
+95% intervals for `low − none/high/random` are respectively `[-189.43,-152.09]`,
+`[-206.68,-152.42]`, and `[-195.10,-142.21]`. T9 passes under identical noise: 12.95% of edge
+decisions change. Full results: [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
+
+## Stage 6.5 — Discrete direct diffusion validity repair
+
+The continuous model answers the frequency question but all arms have 0% Planar validity.
+This matches ConGress's published result and is a limitation of continuous Gaussian edge noise,
+not evidence against conditioning. Carry the same normalized eigenvalue and
+`U_k diag(λ_k) U_kᵀ` condition into direct discrete DiGress before the full sweep. DiGress keeps
+the no-autoencoder advantage and reports 75% Planar V.U.N.
+
+**Gate:** `none` reproduces non-zero Planar validity, then `low, k=8` retains a statistically
+significant advantage without reducing V.U.N.
+
+**Reduced-pilot result:** ⚠ red on validity. A tested marginal-transition D3PM with DiGress-style
+cycle features improves Ratio (`none` 262.47; `low, k=8` 40.01) but both remain at 0% Planar
+validity after 500 epochs, six layers, and 200 diffusion steps. Published DiGress uses ten layers,
+1,000 steps, all auxiliary features, and orders of magnitude more optimization. Do not call this
+a DiGress reproduction. See [docs/ADJACENCY_DIFFUSION.md](docs/ADJACENCY_DIFFUSION.md).
 
 ## Stage 7 — The frequency sweep (headline result)
 
@@ -228,8 +259,10 @@ a shaded region — with the `gaussian` capacity control included.
 
 **Gate:** end-to-end sampling works with no ground-truth inputs and beats the `none` baseline.
 
-## Stage 9 — Downstream experiment and remaining controls
+## Stage 9 — Latent transfer, downstream experiment, and remaining controls
 
+- Repeat `none` / `low` / `high` at `k*` with an LG-Flow-style node-only autoencoder. This tests
+  whether the primary adjacency-space finding transfers to a genuinely linear-size latent.
 - SBM community-count classification, 4-way, at 20/40/80 real training graphs, 5 seeds,
   comparing real-only vs real-plus-unconditioned vs real-plus-low-band augmentation. This
   replaces the planar-vs-SBM task from the proposal, which is separable by mean degree alone
