@@ -20,6 +20,12 @@ from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Ensure DiGress's 'src' package is importable (needed on Python 3.13+ where
+# the editable install alone does not register it).
+_digress_dir = Path(__file__).resolve().parents[1] / "third_party" / "digress"
+if _digress_dir.is_dir() and str(_digress_dir) not in sys.path:
+    sys.path.insert(0, str(_digress_dir))
+
 from fald.data import build_condition_tensors, load_splits
 from fald.data.dense import graphs_to_dense
 from fald.eval import GraphEvaluator
