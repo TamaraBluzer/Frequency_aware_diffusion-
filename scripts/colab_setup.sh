@@ -104,6 +104,11 @@ fi
 echo "-- Installing DiGress package (editable) --"
 pip install --quiet -e "${DIGRESS_DIR}"
 
+# Ensure DiGress's src package is importable from subprocesses by adding a .pth
+# file. The editable install alone may not register 'src' on Python 3.13+.
+SITE_DIR="$(python -c 'import site; print(site.getsitepackages()[0])')"
+echo "${DIGRESS_DIR}" > "${SITE_DIR}/digress-src.pth"
+
 # --- Install this project (fald) as an editable package ---
 echo "-- Installing FALD package (editable) --"
 pip install --quiet -e "${REPO_ROOT}"
