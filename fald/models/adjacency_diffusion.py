@@ -30,11 +30,19 @@ __all__ = [
 def _import_digress_layer():
     try:
         from src.models.transformer_model import XEyTransformerLayer
-    except ImportError as exc:
-        raise ImportError(
-            "Could not import DiGress's XEyTransformerLayer. Run scripts/setup_digress.sh and "
-            "`pip install -e $FALD_WORK_DIR/third_party/digress`."
-        ) from exc
+    except ImportError:
+        import sys
+        from ..paths import third_party_dir
+        digress_dir = str(third_party_dir() / "digress")
+        if digress_dir not in sys.path:
+            sys.path.insert(0, digress_dir)
+        try:
+            from src.models.transformer_model import XEyTransformerLayer
+        except ImportError as exc:
+            raise ImportError(
+                "Could not import DiGress's XEyTransformerLayer. Run scripts/setup_digress.sh and "
+                "`pip install -e $FALD_WORK_DIR/third_party/digress`."
+            ) from exc
     return XEyTransformerLayer
 
 
