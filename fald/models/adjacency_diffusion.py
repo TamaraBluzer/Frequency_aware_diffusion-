@@ -28,25 +28,35 @@ __all__ = [
 
 
 def _import_digress_layer():
+    import importlib, importlib.util, sys, types
+    from ..paths import third_party_dir
+    digress_src = third_party_dir() / "digress" / "src"
+    target = digress_src / "models" / "transformer_model.py"
+    if not target.is_file():
+        raise ImportError(
+            "Could not find DiGress transformer_model.py at " + str(target)
+        )
+    # Temporarily override sys.modules['src'] so that 'from src import X'
+    # inside transformer_model.py resolves to DiGress's src, not any other.
+    old_src = sys.modules.get('src')
+    src_pkg = types.ModuleType('src')
+    src_pkg.__path__ = [str(digress_src)]
+    src_pkg.__file__ = str(digress_src / '__init__.py')
+    sys.modules['src'] = src_pkg
     try:
-        from src.models.transformer_model import XEyTransformerLayer
-    except (ImportError, ModuleNotFoundError):
-        import sys
-        from ..paths import third_party_dir
-        digress_dir = str(third_party_dir() / "digress")
-        if digress_dir not in sys.path:
-            sys.path.insert(0, digress_dir)
-        # Clear any stale 'src' entries cached from a failed editable install.
-        for key in [k for k in sys.modules if k == "src" or k.startswith("src.")]:
-            del sys.modules[key]
-        try:
-            from src.models.transformer_model import XEyTransformerLayer
-        except (ImportError, ModuleNotFoundError) as exc:
-            raise ImportError(
-                "Could not import DiGress's XEyTransformerLayer. Run scripts/setup_digress.sh and "
-                "`pip install -e $FALD_WORK_DIR/third_party/digress`."
-            ) from exc
-    return XEyTransformerLayer
+        spec = importlib.util.spec_from_file_location(
+            "src.models.transformer_model", str(target),
+            submodule_search_locations=[],
+        )
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        spec.loader.exec_module(mod)
+        return mod.XEyTransformerLayer
+    finally:
+        if old_src is not None:
+            sys.modules['src'] = old_src
+        elif 'src' in sys.modules:
+            del sys.modules['src']
 
 
 def _masked_pair(
