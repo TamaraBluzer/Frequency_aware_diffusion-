@@ -67,7 +67,7 @@ if [ ! -d "${DIGRESS_DIR}/.git" ]; then
   git clone https://github.com/cvignac/DiGress.git "${DIGRESS_DIR}"
   git -C "${DIGRESS_DIR}" checkout "${DIGRESS_COMMIT}"
   echo "-- Applying patches --"
-  git -C "${DIGRESS_DIR}" apply --reject --no-backup "${PATCH_FILE}" 2>&1 || true
+  git -C "${DIGRESS_DIR}" apply --reject "${PATCH_FILE}" 2>&1 || true
   find "${DIGRESS_DIR}" -name '*.rej' -delete 2>/dev/null || true
 fi
 
