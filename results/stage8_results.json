@@ -75,14 +75,76 @@
       "novel": 1.000,
       "joint_vun": 0.000,
       "gate": "FAILED"
+    },
+    "high_k32_gs0.5": {
+      "prior_sampling_seconds": 0.4,
+      "diffusion_sampling_seconds": 21.6,
+      "density": 0.0636,
+      "ratio": 298.87,
+      "er_ratio": 161.67,
+      "valid": 0.000,
+      "unique": 1.000,
+      "novel": 1.000,
+      "joint_vun": 0.000,
+      "gate": "FAILED"
+    },
+    "high_k32_gs1.5": {
+      "prior_sampling_seconds": 0.3,
+      "diffusion_sampling_seconds": 22.2,
+      "density": 0.0926,
+      "ratio": 144.16,
+      "er_ratio": 161.67,
+      "valid": 0.000,
+      "unique": 1.000,
+      "novel": 1.000,
+      "joint_vun": 0.000,
+      "gate": "PASSED"
+    },
+    "high_k32_gs2.0": {
+      "prior_sampling_seconds": 0.3,
+      "diffusion_sampling_seconds": 21.7,
+      "density": 0.0972,
+      "ratio": 145.06,
+      "er_ratio": 161.67,
+      "valid": 0.000,
+      "unique": 1.000,
+      "novel": 1.000,
+      "joint_vun": 0.000,
+      "gate": "PASSED"
+    },
+    "high_k32_gs3.0": {
+      "prior_sampling_seconds": 0.3,
+      "diffusion_sampling_seconds": 21.9,
+      "density": 0.1026,
+      "ratio": 161.16,
+      "er_ratio": 161.67,
+      "valid": 0.000,
+      "unique": 1.000,
+      "novel": 1.000,
+      "joint_vun": 0.000,
+      "gate": "PASSED"
+    }
+  },
+  "guidance_scale_sweep": {
+    "scales_tested": [0.5, 1.0, 1.5, 2.0, 3.0],
+    "best_scale": 1.5,
+    "best_ratio": 144.16,
+    "trend": "U-shaped: too low (0.5) fails badly (298.87), optimal at 1.5 (144.16), degrades at 3.0 (161.16). Sweet spot is 1.5-2.0.",
+    "results_by_scale": {
+      "0.5": {"ratio": 298.87, "gate": "FAILED"},
+      "1.0": {"ratio": 159.72, "gate": "PASSED"},
+      "1.5": {"ratio": 144.16, "gate": "PASSED"},
+      "2.0": {"ratio": 145.06, "gate": "PASSED"},
+      "3.0": {"ratio": 161.16, "gate": "PASSED"}
     }
   },
   "summary": {
     "gate_passed": true,
-    "best_config": "high k=32",
+    "best_config": "high k=32, guidance_scale=1.5",
     "oracle_ratio": 5.92,
-    "end_to_end_ratio": 159.72,
-    "oracle_to_e2e_gap": "5.92 → 159.72 (27x degradation from learned prior)",
-    "key_finding": "High k=32 end-to-end narrowly passes gate (159.72 < 161.67 ER). Oracle-mode is far stronger (5.92). Low k=8 fails end-to-end. Spectral prior quality is the bottleneck — prior generates spectra well (MSE ~0.00005) but small errors in eigenvectors compound through U*diag(λ)*U^T to large adjacency errors."
+    "end_to_end_ratio_gs1.0": 159.72,
+    "end_to_end_ratio_gs1.5": 144.16,
+    "oracle_to_e2e_gap": "5.92 → 144.16 (24x degradation from learned prior at best gs=1.5)",
+    "key_finding": "Guidance scale sweep shows U-shaped curve. gs=1.5 is optimal (Ratio 144.16), ~10% better than default gs=1.0 (159.72). gs=0.5 fails (298.87). gs=3.0 barely passes (161.16). The oracle-to-learned gap (24x at best) remains the main bottleneck — small eigenvector errors compound through U*diag(λ)*U^T."
   }
 }
