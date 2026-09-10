@@ -21,9 +21,9 @@ each ending in a gate that must pass before moving on.
 - [x] **Stage 4** — Graph autoencoder investigation (production path rejected)
 - [x] **Stage 5** — Unconditional adjacency diffusion quality gate
 - [x] **Stage 6** — Spectral conditioning with oracle spectra **(KILL GATE PASSED)**
-- [ ] **Stage 6.5** — Transfer conditioning to discrete DiGress for valid generation
-- [ ] **Stage 7** — The frequency sweep (headline result)
-- [ ] **Stage 8** — Learned spectral prior
+- [x] **Stage 6.5** — Transfer conditioning to discrete DiGress for valid generation
+- [x] **Stage 7** — The frequency sweep (headline result)
+- [x] **Stage 8** — Learned spectral prior
 - [ ] **Stage 9** — Latent transfer, downstream experiment, and remaining controls
 - [ ] **Stage 10** — Report
 
