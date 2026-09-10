@@ -1,0 +1,170 @@
+{
+  "stage": 9,
+  "experiment": "downstream_sbm_community_count",
+  "description": "GNN classifier accuracy on 4-way SBM community-count task",
+  "train_sizes": [
+    20,
+    40,
+    80
+  ],
+  "n_seeds": 5,
+  "classifier_epochs": 100,
+  "cond_band": "high",
+  "cond_k": 32,
+  "guidance_scale": 1.5,
+  "has_diffusion_unconditioned": true,
+  "has_diffusion_conditioned": true,
+  "results": {
+    "n20": {
+      "real_only": {
+        "accuracies": [
+          0.96,
+          0.97,
+          0.92,
+          0.95,
+          0.94
+        ],
+        "mean": 0.9480000000000001,
+        "std": 0.017204650534085233,
+        "stderr": 0.007694153624668528
+      },
+      "real_plus_random": {
+        "accuracies": [
+          0.95,
+          0.9,
+          0.98,
+          0.98,
+          0.94
+        ],
+        "mean": 0.95,
+        "std": 0.02966479394838264,
+        "stderr": 0.013266499161421594
+      },
+      "real_plus_unconditioned": {
+        "accuracies": [
+          0.91,
+          0.94,
+          0.94,
+          0.84,
+          0.86
+        ],
+        "mean": 0.898,
+        "std": 0.04118252056394799,
+        "stderr": 0.018417383093154136
+      },
+      "real_plus_conditioned": {
+        "accuracies": [
+          0.89,
+          0.97,
+          0.93,
+          0.94,
+          0.87
+        ],
+        "mean": 0.9199999999999999,
+        "std": 0.035777087639996624,
+        "stderr": 0.015999999999999993
+      }
+    },
+    "n40": {
+      "real_only": {
+        "accuracies": [
+          0.96,
+          0.96,
+          0.96,
+          0.98,
+          0.99
+        ],
+        "mean": 0.97,
+        "std": 0.012649110640673528,
+        "stderr": 0.0056568542494923844
+      },
+      "real_plus_random": {
+        "accuracies": [
+          0.99,
+          0.96,
+          0.99,
+          0.94,
+          0.99
+        ],
+        "mean": 0.974,
+        "std": 0.02059126028197402,
+        "stderr": 0.009208691546577078
+      },
+      "real_plus_unconditioned": {
+        "accuracies": [
+          0.97,
+          0.91,
+          0.95,
+          0.9,
+          0.98
+        ],
+        "mean": 0.942,
+        "std": 0.03187475490101843,
+        "stderr": 0.014254823744964357
+      },
+      "real_plus_conditioned": {
+        "accuracies": [
+          0.92,
+          0.95,
+          0.95,
+          0.94,
+          0.94
+        ],
+        "mean": 0.9400000000000001,
+        "std": 0.010954451150103291,
+        "stderr": 0.004898979485566342
+      }
+    },
+    "n80": {
+      "real_only": {
+        "accuracies": [
+          0.96,
+          0.99,
+          0.95,
+          0.97,
+          0.99
+        ],
+        "mean": 0.9720000000000001,
+        "std": 0.016000000000000014,
+        "stderr": 0.007155417527999333
+      },
+      "real_plus_random": {
+        "accuracies": [
+          1.0,
+          0.99,
+          0.97,
+          0.99,
+          0.99
+        ],
+        "mean": 0.9880000000000001,
+        "std": 0.00979795897113272,
+        "stderr": 0.004381780460041332
+      },
+      "real_plus_unconditioned": {
+        "accuracies": [
+          0.97,
+          0.97,
+          0.95,
+          0.98,
+          0.94
+        ],
+        "mean": 0.962,
+        "std": 0.014696938456699083,
+        "stderr": 0.006572670690061999
+      },
+      "real_plus_conditioned": {
+        "accuracies": [
+          0.96,
+          0.93,
+          0.94,
+          0.96,
+          0.96
+        ],
+        "mean": 0.95,
+        "std": 0.012649110640673493,
+        "stderr": 0.005656854249492369
+      }
+    }
+  },
+  "elapsed_minutes": 79.59141699075698
+}
