@@ -15,5 +15,15 @@ dependencies = [
     "torch>=2.0",
 ]
 
+[project.optional-dependencies]
+# Importing DiGress's transformer layer pulls in src/utils.py, which imports these even though
+# none of our code uses them. Without them `fald.models.adjacency_diffusion` cannot be
+# instantiated and four tests fail at import time.
+digress = [
+    "torch_geometric>=2.4",
+    "omegaconf>=2.3",
+    "wandb>=0.16",
+]
+
 [tool.setuptools.packages.find]
 include = ["fald*"]

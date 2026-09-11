@@ -110,10 +110,39 @@ def main() -> int:
     parser.add_argument("--output", default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing reports with the same band/k/seed names.",
+    )
+    parser.add_argument(
         "--allow-missing-orca", action="store_true",
         help="Run without ORCA. Ratios will be 4-metric and NOT comparable to Table 1.",
     )
     args, extra = parser.parse_known_args()
+
+    # A sweep writes one report per (band, k, seed), and those names collide with the pilot
+    # reports already in results/. Losing a published number to a sweep rerun is not
+    # recoverable from the report itself, so refuse rather than overwrite.
+    if not args.dry_run and not args.overwrite:
+        collisions = []
+        for band in args.bands:
+            for k in args.k_values:
+                for seed in args.seeds:
+                    suffix = "" if seed == 0 else f"_seed{seed}"
+                    candidate = (
+                        results_dir()
+                        / f"adjacency_diffusion_{args.dataset}_{band}_k{k}{suffix}.json"
+                    )
+                    if candidate.is_file():
+                        collisions.append(candidate.name)
+        if collisions:
+            print(
+                f"{len(collisions)} existing report(s) would be overwritten, including "
+                f"{', '.join(collisions[:3])}. Move them aside, or pass --overwrite if you "
+                "intend to replace them.",
+                file=sys.stderr,
+            )
+            return 3
 
     if not orca.is_available() and not args.allow_missing_orca and not args.dry_run:
         print(

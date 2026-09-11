@@ -26,8 +26,32 @@ git -C "${DIGRESS_DIR}" apply "${PATCH_FILE}"
 # Windows CreateProcess appends .exe automatically, so the extension needs no patch.
 ORCA_DIR="${DIGRESS_DIR}/src/analysis/orca"
 if command -v g++ >/dev/null 2>&1; then
-    g++ -O2 -std=c++11 -o "${ORCA_DIR}/orca.exe" "${ORCA_DIR}/orca.cpp"
-    echo "Built ORCA."
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # A partially-installed Command Line Tools can leave usr/include/c++/v1 nearly empty
+        # while the SDKs still carry a complete libc++, and clang searches the broken path
+        # first -- so <cstdio> is "not found" even though it exists. Pick the newest SDK that
+        # actually has headers and point clang at it explicitly.
+        SDK=""
+        for candidate in /Library/Developer/CommandLineTools/SDKs/MacOSX*.sdk; do
+            if [[ -d "${candidate}/usr/include/c++/v1" ]] \
+               && [[ -n "$(ls -A "${candidate}/usr/include/c++/v1" 2>/dev/null)" ]] \
+               && [[ -f "${candidate}/usr/include/c++/v1/cstdio" ]]; then
+                SDK="${candidate}"
+            fi
+        done
+        if [[ -n "${SDK}" ]]; then
+            clang++ -O2 -std=c++11 -nostdinc++ \
+                -isystem "${SDK}/usr/include/c++/v1" -isysroot "${SDK}" \
+                -o "${ORCA_DIR}/orca" "${ORCA_DIR}/orca.cpp"
+            echo "Built ORCA against ${SDK}."
+        else
+            echo "WARNING: no macOS SDK with complete libc++ headers found." >&2
+            echo "         Try: xcode-select --install" >&2
+        fi
+    else
+        g++ -O2 -std=c++11 -o "${ORCA_DIR}/orca" "${ORCA_DIR}/orca.cpp"
+        echo "Built ORCA."
+    fi
 else
     echo "WARNING: g++ not on PATH; ORCA not built and orbit MMD will be unavailable." >&2
     echo "         conda install -n fald -c conda-forge m2w64-toolchain" >&2
