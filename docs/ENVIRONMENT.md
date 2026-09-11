@@ -103,17 +103,25 @@ starts from ConGress, so we are the ones who hit it.
 
 ## Known gaps
 
-**SBM validity is unavailable.** `PLAN.md` claimed `spectre_utils.py` carried a pure-Python SBM
-validity test. It does not: `is_sbm_graph` calls `graph_tool.minimize_blockmodel_dl` for
-Bayesian blockmodel inference plus a merge-split MCMC refinement, then runs a Wald test on the
-recovered parameters. With no `graph-tool` on Windows, SBM validity — and therefore SBM
-V.U.N. — cannot be computed yet.
+**SBM validity uses a spectral-clustering stand-in.** `PLAN.md` claimed `spectre_utils.py`
+carried a pure-Python SBM validity test. It does not: `is_sbm_graph` calls
+`graph_tool.minimize_blockmodel_dl` for Bayesian blockmodel inference plus a merge-split MCMC
+refinement, then runs a Wald test on the recovered parameters. `graph-tool` has no Windows
+build, so that path is unavailable.
 
-This does not affect Planar, which carries the headline result. It does affect the SBM half of
-Stage 7 and the Stage 9 downstream task. The intended replacement is spectral clustering
-(recover blocks with `sklearn.cluster.SpectralClustering`, then apply the same Wald test), which
-is deterministic and dependency-light but *not* identical to graph-tool's Bayesian inference and
-so must be reported as a deviation rather than compared directly to SPECTRE's SBM numbers.
+`sbm_validity` now implements the planned replacement: recover blocks with
+`sklearn.cluster.SpectralClustering`, scanning block counts in `[2, 5]`, then check the same
+structural conditions directly (every block at least 10 nodes, intra-block density >= 0.25,
+inter-block density <= 0.10, graph connected).
+
+Calibration on the SBM validation split: **90.6% of real graphs accepted (29/32), 0% of
+density-matched Erdos-Renyi graphs accepted (0/32)**. The discriminator has real power, and
+its ~9% false-negative rate on real graphs is a conservative bias -- it understates validity
+rather than inflating it.
+
+This is deterministic and dependency-light but *not* identical to graph-tool's Bayesian
+inference, so SBM numbers produced with it must be reported as a deviation and never compared
+directly against SPECTRE's published SBM figures.
 
 **`pyemd` is absent**, so the legacy GraphRNN-style EMD kernels cannot run. This costs us
 nothing: DiGress and SPECTRE both report `gaussian_tv` MMD, and the smoke test confirms the

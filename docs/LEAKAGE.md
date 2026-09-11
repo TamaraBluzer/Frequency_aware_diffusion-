@@ -87,6 +87,35 @@ this project uses does not share that property. The disagreement is a genuine da
 difference, not an error on either side -- and it is a good argument for probing the exact
 split rather than a reconstruction of it.
 
+## SBM replicates the pattern
+
+The same probe on the SBM validation split (32 graphs, n = 55-172), where chance is 9.4%:
+
+| Band | k=2 | k=8 | k=32 |
+|---|---|---|---|
+| low | 1.4% | **3.5%** | 0.9% |
+| high | 23.0% | **51.8%** | 87.7% |
+| random | 14.6% | 17.8% | 30.3% |
+| gaussian | 9.6% | 9.5% | 9.3% |
+| shuffled | 3.2% | 13.2% | 16.4% |
+
+`low` stays below chance and `high` climbs toward near-total recovery, exactly as on Planar.
+**The anti-leakage result is therefore not a Planar artifact**, which matters because Planar's
+low band was the specific thing the original objection singled out (2D point geometry).
+
+### One caveat, specific to SBM
+
+`shuffled` drifts above chance as k grows (1.74x at k=32), where on Planar it stayed flat.
+SBM graphs vary in size (55-172 nodes) and size correlates strongly with density
+(r = -0.87), while donors differ from their targets by ~44 nodes on average. Cropping or
+padding a donor channel to the target's size therefore leaks *size and density*, even though
+it carries no information about which specific pairs are edges.
+
+So on SBM the shuffled arm is a weaker control than on Planar: it is still free of
+target-specific edge information, but it is not free of target-specific *scale*. Read it
+accordingly, and prefer `gaussian` (flat at 0.99-1.03x across all k) as the strict floor on
+this dataset.
+
 ## What this does and does not establish
 
 **Does:** the `low` > `high`/`random` ordering in Table 1 is not explained by the condition

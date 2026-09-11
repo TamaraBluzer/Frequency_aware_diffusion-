@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Callable, Iterable
 
 import networkx as nx
+import numpy as np
 
 __all__ = ["is_planar", "sbm_validity", "vun", "fraction_unique", "fraction_novel"]
 
@@ -19,11 +20,78 @@ def is_planar(graph) -> bool:
     return nx.is_connected(graph) and nx.check_planarity(graph)[0]
 
 
-def sbm_validity(graph) -> bool:
-    raise NotImplementedError(
-        "SBM validity needs graph-tool's minimize_blockmodel_dl, which does not build on "
-        "Windows. See docs/ENVIRONMENT.md for the planned spectral-clustering replacement."
-    )
+def sbm_validity(
+    graph,
+    *,
+    n_blocks_range: tuple[int, int] = (2, 5),
+    intra_min: float = 0.25,
+    inter_max: float = 0.10,
+    min_block_size: int = 10,
+    seed: int = 0,
+) -> bool:
+    """Spectral-clustering stand-in for graph-tool's Bayesian blockmodel test.
+
+    SPECTRE recovers blocks with `minimize_blockmodel_dl` plus an MCMC refinement, then Wald
+    -tests the recovered parameters. graph-tool has no Windows build, so blocks are recovered
+    with spectral clustering instead and the same structural conditions are checked directly:
+    every block large enough to be meaningful, intra-block density high, inter-block density
+    low.
+
+    This is deliberately *not* presented as equivalent to the upstream test -- it is
+    deterministic and dependency-light, but a different estimator. SBM numbers produced with
+    it must be reported as a deviation and not compared directly against SPECTRE's.
+    """
+    from sklearn.cluster import SpectralClustering
+
+    if graph.number_of_nodes() < min_block_size * n_blocks_range[0]:
+        return False
+    if not nx.is_connected(graph):
+        return False
+
+    adjacency = nx.to_numpy_array(graph, dtype=float)
+    n = adjacency.shape[0]
+
+    # The block count is unknown, so accept the graph if *any* count in range fits. Upstream
+    # infers it; scanning is the deterministic analogue.
+    for n_blocks in range(n_blocks_range[0], n_blocks_range[1] + 1):
+        if n < min_block_size * n_blocks:
+            continue
+        try:
+            labels = SpectralClustering(
+                n_clusters=n_blocks,
+                affinity="precomputed",
+                assign_labels="kmeans",
+                random_state=seed,
+            ).fit_predict(adjacency)
+        except Exception:
+            continue
+
+        sizes = [int((labels == b).sum()) for b in range(n_blocks)]
+        if min(sizes) < min_block_size:
+            continue
+
+        intra_ok = True
+        inter_ok = True
+        for a in range(n_blocks):
+            mask_a = labels == a
+            block = adjacency[np.ix_(mask_a, mask_a)]
+            possible = sizes[a] * (sizes[a] - 1)
+            if possible == 0 or block.sum() / possible < intra_min:
+                intra_ok = False
+                break
+            for b in range(a + 1, n_blocks):
+                mask_b = labels == b
+                cross = adjacency[np.ix_(mask_a, mask_b)]
+                if cross.mean() > inter_max:
+                    inter_ok = False
+                    break
+            if not inter_ok:
+                break
+
+        if intra_ok and inter_ok:
+            return True
+
+    return False
 
 
 def _isomorphic_to_any(graph, others: Iterable) -> bool:

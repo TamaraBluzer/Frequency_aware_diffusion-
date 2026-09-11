@@ -30,7 +30,7 @@ from fald.data import build_condition_tensors, load_splits
 from fald.data.dense import graphs_to_dense
 from fald.eval import GraphEvaluator
 from fald.eval import orca
-from fald.eval.validity import is_planar
+from fald.eval.validity import is_planar, sbm_validity
 from fald.models import (
     AdjacencyDiffusion,
     AdjacencyDiffusionConfig,
@@ -325,7 +325,7 @@ def main() -> int:
         evaluator = GraphEvaluator(
             eval_graphs,
             train_graphs=train_graphs,
-            validity_func=is_planar if args.dataset == "planar" else None,
+            validity_func=is_planar if args.dataset == "planar" else sbm_validity,
             metrics=metrics,
         )
         floor = evaluator.self_similarity(train_graphs)

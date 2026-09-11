@@ -55,8 +55,13 @@ degenerate reference cannot produce a meaningless astronomical ratio.
 from earlier samples, and not isomorphic to any training graph — plus each marginal, because a
 low joint score is otherwise unattributable.
 
-Planarity is exact (`nx.check_planarity` plus connectivity). **SBM validity raises
-`NotImplementedError`**: it needs graph-tool, which has no Windows build. See
+Planarity is exact (`nx.check_planarity` plus connectivity). Because that conjunction hides
+*which* condition failed, `diagnose_validity` in `scripts/report_breakdown.py` reports
+connectivity and planarity separately alongside component counts and the 3n-6 edge bound.
+
+**SBM validity is a spectral-clustering stand-in**, not graph-tool's Bayesian blockmodel test:
+90.6% of real SBM validation graphs pass and 0% of density-matched Erdos-Renyi graphs do.
+Report it as a deviation; never compare it directly to SPECTRE's SBM numbers. See
 [ENVIRONMENT.md](ENVIRONMENT.md).
 
 ## Data loading

@@ -104,7 +104,7 @@ def main() -> int:
     evaluator = GraphEvaluator(
         reference_graphs=test,
         train_graphs=train,
-        validity_func=is_planar if args.dataset == "planar" else None,
+        validity_func=is_planar if args.dataset == "planar" else sbm_validity,
         metrics=metric_names,
     )
 
