@@ -131,7 +131,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="planar", choices=["planar", "sbm"])
     parser.add_argument("--process", default="continuous", choices=["continuous", "discrete"])
-    parser.add_argument("--band", default="none", choices=["none", "low", "high", "random"])
+    parser.add_argument(
+        "--band",
+        default="none",
+        choices=["none", "low", "high", "random", "gaussian", "shuffled"],
+    )
     parser.add_argument("--k", type=int, default=8)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch-size", type=int, default=16)

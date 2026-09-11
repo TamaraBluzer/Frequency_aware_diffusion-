@@ -29,6 +29,7 @@ from dataclasses import dataclass, asdict
 import networkx as nx
 import numpy as np
 
+from fald.data.conditioning import _derangement
 from fald.data.spectral import cached_eigendecompositions, select_band
 from fald.data.spectre import load_splits
 from fald.eval.validity import is_planar
@@ -100,17 +101,26 @@ def evaluate_band(
 ) -> LeakageRow:
     all_values, all_vectors = cached_eigendecompositions(graphs, tag=cache_tag)
 
+    # 'shuffled' is a donor assignment rather than an eigenpair rule: each graph gets another
+    # graph's real low band. Mirrors build_condition_tensors so the probe scores what the model
+    # would actually receive.
+    reported_band = band
+    if band == "shuffled":
+        donors = _derangement(len(graphs), seed)
+        band = "low"
+    else:
+        donors = np.arange(len(graphs))
+
     recoveries: list[float] = []
     chances: list[float] = []
     connected: list[bool] = []
     planar: list[bool] = []
     valid: list[bool] = []
 
-    for index, (graph, values, vectors) in enumerate(
-        zip(graphs, all_values, all_vectors)
-    ):
+    for index, graph in enumerate(graphs):
+        donor = int(donors[index])
         rng = np.random.default_rng(seed + index)
-        condition = select_band(values, vectors, band, k, rng=rng)
+        condition = select_band(all_values[donor], all_vectors[donor], band, k, rng=rng)
         pair_channel = condition.rank_one_pair_channel()
 
         true_edges = set(map(frozenset, graph.edges()))
@@ -126,7 +136,7 @@ def evaluate_band(
     mean_recovery = float(np.mean(recoveries))
     mean_chance = float(np.mean(chances))
     return LeakageRow(
-        band=band,
+        band=reported_band,
         k=k,
         edge_recovery=mean_recovery,
         edge_recovery_std=float(np.std(recoveries)),
@@ -143,7 +153,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", default="planar")
     parser.add_argument("--split", default="val")
-    parser.add_argument("--bands", nargs="+", default=["low", "high", "random", "gaussian"])
+    parser.add_argument(
+        "--bands", nargs="+", default=["low", "high", "random", "gaussian", "shuffled"]
+    )
     parser.add_argument("--k-values", nargs="+", type=int, default=[2, 4, 8, 16, 32])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", default=None)
