@@ -84,20 +84,27 @@ else
   echo "WARNING: g++ not found; ORCA will be unavailable (orbit MMD disabled)." >&2
 fi
 
-# --- Install PyTorch Geometric extension wheels ---
-echo "-- Installing PyTorch Geometric extension wheels --"
-TORCH_VER="$(python -c 'import torch; print(torch.__version__.split("+")[0])' 2>/dev/null || echo "2.3.0")"
-pip install --quiet torch-scatter torch-sparse torch-cluster torch-spline-conv \
-  -f "https://data.pyg.org/whl/torch-${TORCH_VER}+${TORCH_CUDA_TAG}.html" 2>/dev/null || \
-  echo "NOTE: Some PyG extension wheels failed. Check torch version (${TORCH_VER}) against https://data.pyg.org/whl/"
+# --- Install PyTorch Geometric ---
+# We import DiGress's transformer layer only, which needs plain torch_geometric plus the two
+# config/logging packages src/utils.py imports. The compiled extension wheels (torch-scatter,
+# torch-sparse, ...) are never imported by this project, and when no matching wheel exists pip
+# builds them from source -- 8+ minutes on a fresh Colab runtime. Set FALD_FULL_PYG=1 to get
+# them anyway, e.g. to run DiGress's own training pipeline.
+echo "-- Installing PyTorch Geometric --"
+pip install --quiet torch-geometric omegaconf wandb 2>/dev/null || true
 
-pip install --quiet torch-geometric 2>/dev/null || true
+if [ "${FALD_FULL_PYG:-0}" = "1" ]; then
+  echo "-- Installing PyG extension wheels (FALD_FULL_PYG=1; may compile from source) --"
+  TORCH_VER="$(python -c 'import torch; print(torch.__version__.split("+")[0])' 2>/dev/null || echo "2.3.0")"
+  pip install --quiet torch-scatter torch-sparse torch-cluster torch-spline-conv \
+    -f "https://data.pyg.org/whl/torch-${TORCH_VER}+${TORCH_CUDA_TAG}.html" 2>/dev/null || \
+    echo "NOTE: Some PyG extension wheels failed. Check torch version (${TORCH_VER}) against https://data.pyg.org/whl/"
 
-# --- Install DiGress requirements ---
-if [ -f "${DIGRESS_DIR}/requirements.txt" ]; then
-  echo "-- Installing DiGress requirements --"
-  pip install --quiet -r "${DIGRESS_DIR}/requirements.txt" 2>/dev/null || \
-    echo "NOTE: Some DiGress requirements failed; inspect output above."
+  if [ -f "${DIGRESS_DIR}/requirements.txt" ]; then
+    echo "-- Installing DiGress requirements --"
+    pip install --quiet -r "${DIGRESS_DIR}/requirements.txt" 2>/dev/null || \
+      echo "NOTE: Some DiGress requirements failed; inspect output above."
+  fi
 fi
 
 # --- Install DiGress editable ---
