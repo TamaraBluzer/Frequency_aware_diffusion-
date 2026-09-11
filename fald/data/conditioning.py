@@ -21,6 +21,17 @@ class ConditionTensors:
     present: torch.Tensor
 
 
+def _derangement(size: int, seed: int) -> np.ndarray:
+    """A permutation with no fixed point, so no graph receives its own spectrum."""
+    if size < 2:
+        raise ValueError("the shuffled-donor control needs at least two graphs")
+    rng = np.random.default_rng(seed)
+    while True:
+        candidate = rng.permutation(size)
+        if not np.any(candidate == np.arange(size)):
+            return candidate
+
+
 def _normalize_pair_channel(channel: np.ndarray) -> np.ndarray:
     """Unit-RMS scaling prevents low/high bands differing only by input magnitude."""
     rms = float(np.sqrt(np.mean(np.square(channel))))
@@ -42,10 +53,9 @@ def build_condition_tensors(
     are mapped from `[0, 2]` to `[-1, 1]`.  Pair channels are scaled per graph to
     unit RMS so the low/high comparison is not an activation-scale comparison.
     """
-    if band not in {"none", "low", "high", "random"}:
+    if band not in {"none", "low", "high", "random", "gaussian", "shuffled"}:
         raise ValueError(
-            "Tier-0 currently supports none/low/high/random; geometry-matched controls "
-            "must be added before running the full sweep"
+            f"unsupported band {band!r}; expected none/low/high/random/gaussian/shuffled"
         )
     if k < 1:
         raise ValueError("k must be >= 1; use band='none' for an absent condition")
@@ -63,15 +73,29 @@ def build_condition_tensors(
         )
 
     all_values, all_vectors = cached_eigendecompositions(graphs, tag=cache_tag)
-    for index, (graph, values, vectors) in enumerate(
-        zip(graphs, all_values, all_vectors)
-    ):
+
+    # The shuffled-donor control pairs each graph with another graph's spectrum. It is a real
+    # low band with real eigenvalue statistics, just not *this* graph's, which separates
+    # "low-frequency structure helps" from "the matching condition helps". A derangement is
+    # used so no graph can be handed its own spectrum back.
+    donor_band = band
+    if band == "shuffled":
+        donor_band = "low"
+        donors = _derangement(len(graphs), seed)
+    else:
+        donors = np.arange(len(graphs))
+
+    for index, graph in enumerate(graphs):
+        donor = int(donors[index])
+        values, vectors = all_values[donor], all_vectors[donor]
         rng = np.random.default_rng(seed + index)
-        condition = select_band(values, vectors, band, k, rng=rng)
+        condition = select_band(values, vectors, donor_band, k, rng=rng)
         n = graph.number_of_nodes()
-        pair[index, :n, :n] = _normalize_pair_channel(
-            condition.rank_one_pair_channel()
-        ).astype(np.float32)
+        channel = _normalize_pair_channel(condition.rank_one_pair_channel())
+        # A donor with a different node count is cropped or zero-padded to the target's size.
+        # Equal-n datasets (Planar, SBM) never hit this; it keeps the control well-defined.
+        extent = min(n, channel.shape[0])
+        pair[index, :extent, :extent] = channel[:extent, :extent].astype(np.float32)
         eigenvalues[index] = (condition.eigvals - 1.0).astype(np.float32)
         present[index, 0] = 1.0
 
