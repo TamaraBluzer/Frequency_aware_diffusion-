@@ -64,13 +64,27 @@ assert orca.is_available(), (
 )
 
 # %% [markdown]
-# ## Measure leakage first (CPU, ~1 min)
+# ## Choose the dataset
+#
+# Run the whole notebook once with `DATASET = "planar"`, then again with `"sbm"`.
+# The proposal promised both; the paper reported only Planar.
+#
+# SBM notes: validity uses the spectral-clustering stand-in (90.6% of real graphs pass,
+# 0% of ER), which is a deviation from graph-tool and must not be compared to SPECTRE's
+# SBM numbers. The `shuffled` arm is also a weaker control there, because node count
+# correlates with density -- see docs/LEAKAGE.md.
+
+# %%
+DATASET = "planar"  # "planar" or "sbm"
+
+# %% [markdown]
+# ## Measure leakage first (CPU, ~1-5 min)
 #
 # This is the reference the sweep is joined against, and it needs no GPU.
 
 # %%
 subprocess.check_call(
-    [sys.executable, "scripts/condition_leakage.py", "--dataset", "planar", "--split", "val"]
+    [sys.executable, "scripts/condition_leakage.py", "--dataset", DATASET, "--split", "val"]
 )
 
 # %% [markdown]
@@ -87,7 +101,7 @@ EPOCHS = 200
 subprocess.check_call(
     [
         sys.executable, "scripts/run_k_sweep.py",
-        "--dataset", "planar",
+        "--dataset", DATASET,
         "--bands", *BANDS,
         "--k-values", *map(str, K_VALUES),
         "--seeds", *map(str, SEEDS),
@@ -99,11 +113,11 @@ subprocess.check_call(
 # ## Analyze: frequency view vs information view
 
 # %%
-subprocess.check_call([sys.executable, "scripts/analyze_sweep.py", "--dataset", "planar"])
+subprocess.check_call([sys.executable, "scripts/analyze_sweep.py", "--dataset", DATASET])
 
 from IPython.display import Image, display
 
-display(Image("results/figures/k_sweep_planar.png"))
+display(Image(f"results/figures/k_sweep_{DATASET}.png"))
 
 # %% [markdown]
 # ## How to read the right-hand panel
@@ -124,6 +138,6 @@ display(Image("results/figures/k_sweep_planar.png"))
 subprocess.check_call(["git", "add", "results/"])
 subprocess.check_call(
     ["git", "-c", "user.email=bluzertamara2@gmail.com", "-c", "user.name=TamaraBluzer",
-     "commit", "-m", "Stage 10: k-sweep results with leakage join"]
+     "commit", "-m", f"Stage 10: {DATASET} k-sweep results with leakage join"]
 )
 print("Committed. Push with your credentials:  !git push")
