@@ -1,0 +1,84 @@
+{
+  "experiment": "discrete_scaled_up_planar",
+  "description": "Scaled-up discrete D3PM runs recovered from notebook outputs in commits 649fc7d and 2e0ac83. These were never written to results/, which is why the notebook and the saved JSON reports disagree for similar run names.",
+  "provenance": {
+    "source": "notebooks/FALD_Colab.ipynb cell outputs",
+    "commits": ["649fc7d", "2e0ac83"],
+    "recovered_by": "scripts/recover_scaled_up.py",
+    "caveat": "Recovered from stdout, not from a saved report. Per-metric ratios, validation loss and the metric list were not printed and are therefore unavailable."
+  },
+  "er_reference": 337.9131094324825,
+  "metrics_note": "ER=337.91 matches the 5-metric scale used in Table 1, so ORCA was present for these runs.",
+  "runs": [
+    {
+      "name": "unconditioned (pilot scale)",
+      "band": "none",
+      "k": 8,
+      "epochs": 500,
+      "n_layers": 6,
+      "timesteps": 200,
+      "cycle_features": true,
+      "ratio": 306.78,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "name": "low k=8 (pilot scale)",
+      "band": "low",
+      "k": 8,
+      "epochs": 500,
+      "n_layers": 6,
+      "timesteps": 200,
+      "cycle_features": true,
+      "ratio": 30.07,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "name": "low k=8 (scaled up)",
+      "band": "low",
+      "k": 8,
+      "epochs": 1000,
+      "n_layers": 10,
+      "timesteps": 500,
+      "cycle_features": true,
+      "ratio": 15.4,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0,
+      "training_minutes": 87,
+      "note": "Best Ratio recorded in this project."
+    },
+    {
+      "name": "unconditioned (scaled up)",
+      "band": "none",
+      "k": 8,
+      "epochs": 1000,
+      "n_layers": 10,
+      "timesteps": 500,
+      "cycle_features": true,
+      "ratio": 39.6,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0,
+      "training_minutes": 86,
+      "source_commit": "649fc7d"
+    }
+  ],
+  "saved_json_counterparts": {
+    "note": "The results/ JSON files with similar names are a DIFFERENT configuration (6 layers, 200 steps, ~8.5 min), not an overwritten version of the above.",
+    "discrete_adjacency_diffusion_planar_none_k8": 318.57,
+    "discrete_adjacency_diffusion_cycles_planar_none_k8": 262.47,
+    "discrete_adjacency_diffusion_cycles_planar_low_k8": 40.01
+  },
+  "headline": {
+    "matched_scaled_up_pair": {
+      "unconditioned": 39.6,
+      "low_k8": 15.4,
+      "relative_improvement": -0.6111111111111112
+    },
+    "interpretation": "At the scaled-up configuration the unconditioned baseline improves ~8x over the pilot (327 -> 39.60), so conditioning still helps (-61%) but the absolute gap narrows from ~220 to ~24 Ratio points. Zero validity persists at every scale."
+  }
+}

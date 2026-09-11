@@ -52,6 +52,36 @@ ratio to a Table 1 ratio is comparing two different quantities.
 **Fix going forward:** record `metrics` in every saved report and refuse to compare across sets.
 `audit_comparability` in `scripts/report_breakdown.py` flags this automatically.
 
+## 1b. The notebook-vs-JSON mismatch is different configurations, not overwrites
+
+A reviewer noticed that `notebooks/FALD_Colab.ipynb` and the saved reports disagree for
+similar run names -- discrete unconditioned 306.78 in the notebook vs 262.47 in the JSON,
+discrete low 30.07 vs 40.01 -- and inferred that Colab runs had overwritten each other's files.
+
+They are different experiments, not different versions of one experiment
+(`scripts/recover_scaled_up.py` re-extracts this from git history):
+
+| Source | Layers | Steps | Epochs | Minutes | uncond | low k=8 |
+|---|---|---|---|---|---|---|
+| `results/*.json` | 6 | 200 | -- | ~8.5 | 262.47 | 40.01 |
+| notebook (pilot) | 6 | 200 | 500 | -- | 306.78 | 30.07 |
+| notebook (scaled) | 10 | 500 | 1000 | ~86 | **39.60** | **15.40** |
+
+Neither notebook pair was ever written to `results/`. The scaled-up pair is the project's best
+matched comparison and the best Ratio recorded anywhere in it, and the paper omits it.
+
+**Why it matters for the argument.** At the scaled-up configuration the *unconditioned*
+baseline improves roughly 8x (327 -> 39.60). Conditioning still helps by -61%, but the
+absolute gap narrows from ~220 Ratio points to ~24. The pilot's headline overstates how much
+conditioning contributes at a serious training budget, so the scaled-up pair belongs in the
+paper -- it is a weaker but far more honest number.
+
+Zero validity persists at every scale, including the 86-minute runs.
+
+Recovered into `results/discrete_scaled_up_planar.json`. Recovered from stdout, so per-metric
+ratios and validation losses are unavailable for these runs; the ER of 337.91 matches Table
+1's 5-metric scale, so ORCA was present.
+
 ## 2. The headline improvement is mostly one metric
 
 The reported `none -> low` improvement is a change in a mean over five metrics with wildly

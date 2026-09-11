@@ -1,0 +1,52 @@
+{
+  "runs": [
+    {
+      "commit": "649fc7d",
+      "ratio": 306.78,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "commit": "649fc7d",
+      "ratio": 30.07,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "commit": "649fc7d",
+      "ratio": 39.6,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "commit": "2e0ac83",
+      "ratio": 306.78,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "commit": "2e0ac83",
+      "ratio": 30.07,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    },
+    {
+      "commit": "2e0ac83",
+      "ratio": 15.4,
+      "er_ratio": 337.91,
+      "validity": 0.0,
+      "unique": 1.0,
+      "novel": 1.0
+    }
+  ]
+}
