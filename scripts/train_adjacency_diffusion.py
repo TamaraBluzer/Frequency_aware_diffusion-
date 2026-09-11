@@ -158,6 +158,11 @@ def main() -> int:
     parser.add_argument("--eval-only", action="store_true")
     parser.add_argument("--allow-gate-failure", action="store_true")
     parser.add_argument(
+        "--results-subdir",
+        default=None,
+        help="Write the report and samples under results/<subdir>/ instead of results/.",
+    )
+    parser.add_argument(
         "--planarity-distance",
         action="store_true",
         help="Also compute distance-to-planarity (~40s/32 samples). Off by default.",
@@ -397,15 +402,18 @@ def main() -> int:
         "training_minutes": training_minutes,
         "evaluation_minutes": elapsed_minutes,
     }
-    results_dir().mkdir(parents=True, exist_ok=True)
+    # A sweep writes report names that collide with the published pilot reports, so it sends
+    # its output to a subdirectory instead of overwriting Table 1's numbers.
+    output_dir = results_dir() / args.results_subdir if args.results_subdir else results_dir()
+    output_dir.mkdir(parents=True, exist_ok=True)
     run_stem = f"{model_prefix}_{args.dataset}_{args.band}_k{args.k}{seed_suffix}"
-    samples_path = results_dir() / f"{run_stem}_samples.pt"
+    samples_path = output_dir / f"{run_stem}_samples.pt"
     torch.save(
         [nx.to_numpy_array(graph, dtype=np.uint8) for graph in generated],
         samples_path,
     )
     report["samples_path"] = str(samples_path)
-    report_path = results_dir() / f"{run_stem}.json"
+    report_path = output_dir / f"{run_stem}.json"
     report_path.write_text(json.dumps(report, indent=2))
     print(f"wrote {report_path}")
 

@@ -46,6 +46,7 @@ def run_one(
     epochs: int,
     extra: list[str],
     dry_run: bool,
+    subdir: str,
 ) -> dict:
     command = [
         sys.executable,
@@ -56,6 +57,7 @@ def run_one(
         "--seed", str(seed),
         "--epochs", str(epochs),
         "--allow-gate-failure",
+        "--results-subdir", subdir,
         *extra,
     ]
     if dry_run:
@@ -73,7 +75,9 @@ def run_one(
 
     # The trainer names its report by dataset/band/k/seed; re-read it rather than parsing stdout.
     suffix = "" if seed == 0 else f"_seed{seed}"
-    report_path = results_dir() / f"adjacency_diffusion_{dataset}_{band}_k{k}{suffix}.json"
+    report_path = (
+        results_dir() / subdir / f"adjacency_diffusion_{dataset}_{band}_k{k}{suffix}.json"
+    )
     report = json.loads(report_path.read_text()) if report_path.is_file() else {}
     evaluation = report.get("evaluation") or {}
 
@@ -108,6 +112,11 @@ def main() -> int:
     parser.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--output", default=None)
+    parser.add_argument(
+        "--results-subdir",
+        default="k_sweep",
+        help="Subdirectory of results/ for sweep output, keeping Table 1's reports intact.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--overwrite",
@@ -131,6 +140,7 @@ def main() -> int:
                     suffix = "" if seed == 0 else f"_seed{seed}"
                     candidate = (
                         results_dir()
+                        / args.results_subdir
                         / f"adjacency_diffusion_{args.dataset}_{band}_k{k}{suffix}.json"
                     )
                     if candidate.is_file():
@@ -166,7 +176,9 @@ def main() -> int:
     rows = []
     for index, (band, k, seed) in enumerate(jobs, start=1):
         print(f"[{index}/{len(jobs)}] {band} k={k} seed={seed}", flush=True)
-        row = run_one(args.dataset, band, k, seed, args.epochs, extra, args.dry_run)
+        row = run_one(
+            args.dataset, band, k, seed, args.epochs, extra, args.dry_run, args.results_subdir
+        )
         rows.append(row)
         if row.get("failed"):
             print(f"  FAILED: {row['stderr'][-300:]}", flush=True)
