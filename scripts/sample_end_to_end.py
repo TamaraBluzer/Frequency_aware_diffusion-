@@ -194,6 +194,11 @@ def main() -> int:
         "prior_config": asdict(prior_cfg),
         "diffusion_config": asdict(diff_cfg),
         "evaluation": evaluation,
+        # Without this, a report's Ratio cannot be placed on a scale: orbit is appended only
+        # when ORCA is present, and its absence shifts the mean by ~2.5x. Stage 8's reports
+        # predate this field, which is why their 161.67 ER could not be attributed directly.
+        "metrics": metrics_list,
+        "orca_available": orca.is_available(),
         "er_ratio": er_result.ratio,
         "prior_sampling_seconds": prior_time,
         "diffusion_sampling_seconds": diffusion_time,

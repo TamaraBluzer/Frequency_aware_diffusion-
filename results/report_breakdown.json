@@ -1,0 +1,475 @@
+{
+  "experiment": "report_breakdown",
+  "n_reports": 15,
+  "comparability_audit": {
+    "scales": {
+      "5-metric (with orbit)": [
+        "adjacency_diffusion_planar_high_k8",
+        "adjacency_diffusion_planar_high_k8_seed1",
+        "adjacency_diffusion_planar_high_k8_seed2",
+        "adjacency_diffusion_planar_low_k8",
+        "adjacency_diffusion_planar_low_k8_seed1",
+        "adjacency_diffusion_planar_low_k8_seed2",
+        "adjacency_diffusion_planar_none_k8",
+        "adjacency_diffusion_planar_none_k8_seed1",
+        "adjacency_diffusion_planar_none_k8_seed2",
+        "adjacency_diffusion_planar_random_k8",
+        "adjacency_diffusion_planar_random_k8_seed1",
+        "adjacency_diffusion_planar_random_k8_seed2",
+        "discrete_adjacency_diffusion_cycles_planar_low_k8",
+        "discrete_adjacency_diffusion_cycles_planar_none_k8",
+        "discrete_adjacency_diffusion_planar_none_k8"
+      ]
+    },
+    "comparable": true,
+    "note": "Ratios from different metric sets are not comparable: orbit's reference floor is ~1e-4, so including it shifts the mean by roughly 2-3x."
+  },
+  "decompositions": {
+    "adjacency_diffusion_planar_high_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 157.83967753797634,
+        "clustering": 20.40471051091448,
+        "spectral": 13.931013758685513,
+        "wavelet": 361.143684747207,
+        "orbit": 1167.468462895018
+      },
+      "share_of_total": {
+        "degree": 0.09172525544390617,
+        "clustering": 0.011857774376295673,
+        "spectral": 0.0080957197552596,
+        "wavelet": 0.20987116327211794,
+        "orbit": 0.6784500871524206
+      },
+      "arithmetic_mean": 344.1575098899603,
+      "geometric_mean": 113.59805754203599,
+      "reported_ratio": 344.1575098899603
+    },
+    "adjacency_diffusion_planar_high_k8_seed1": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 171.72686215987335,
+        "clustering": 20.202467095893972,
+        "spectral": 12.35259684871062,
+        "wavelet": 367.2897038687164,
+        "orbit": 1151.348901790669
+      },
+      "share_of_total": {
+        "degree": 0.09967195758243454,
+        "clustering": 0.011725710340924093,
+        "spectral": 0.0071695685442116595,
+        "wavelet": 0.21317855182368659,
+        "orbit": 0.6682542117087431
+      },
+      "arithmetic_mean": 344.58410635277266,
+      "geometric_mean": 112.62720925855757,
+      "reported_ratio": 344.58410635277266
+    },
+    "adjacency_diffusion_planar_high_k8_seed2": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 166.24049468479754,
+        "clustering": 18.876212323440164,
+        "spectral": 12.370181448648905,
+        "wavelet": 353.79334807359584,
+        "orbit": 1091.0702011201568
+      },
+      "share_of_total": {
+        "degree": 0.10122108587409785,
+        "clustering": 0.011493413275696715,
+        "spectral": 0.0075319987531676175,
+        "wavelet": 0.21541891423592432,
+        "orbit": 0.6643345878611135
+      },
+      "arithmetic_mean": 328.47008753012784,
+      "geometric_mean": 108.42414867056621,
+      "reported_ratio": 328.47008753012784
+    },
+    "adjacency_diffusion_planar_low_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 212.5099932407368,
+        "clustering": 14.978927046360207,
+        "spectral": 7.632139845271577,
+        "wavelet": 130.3456711007589,
+        "orbit": 390.9757549842942
+      },
+      "share_of_total": {
+        "degree": 0.2809334445284658,
+        "clustering": 0.01980180558242053,
+        "spectral": 0.010089517688827829,
+        "wavelet": 0.1723140535806632,
+        "orbit": 0.5168611786196227
+      },
+      "arithmetic_mean": 151.28849724348433,
+      "geometric_mean": 65.84920929101,
+      "reported_ratio": 151.28849724348433
+    },
+    "adjacency_diffusion_planar_low_k8_seed1": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 191.6114606028495,
+        "clustering": 14.904722337738717,
+        "spectral": 7.06298578198397,
+        "wavelet": 129.25163075972432,
+        "orbit": 388.0041553861923
+      },
+      "share_of_total": {
+        "degree": 0.2621815764645922,
+        "clustering": 0.020394101620961426,
+        "spectral": 0.009664269251126517,
+        "wavelet": 0.1768547466137313,
+        "orbit": 0.5309053060495886
+      },
+      "arithmetic_mean": 146.16699097369775,
+      "geometric_mean": 63.24136312227834,
+      "reported_ratio": 146.16699097369775
+    },
+    "adjacency_diffusion_planar_low_k8_seed2": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 195.4980177877714,
+        "clustering": 14.903648237692948,
+        "spectral": 7.177358293562848,
+        "wavelet": 127.19418716840987,
+        "orbit": 537.4357438212602
+      },
+      "share_of_total": {
+        "degree": 0.22160058182515716,
+        "clustering": 0.0168935580941569,
+        "spectral": 0.008135667009922144,
+        "wavelet": 0.1441769394915095,
+        "orbit": 0.6091932535792542
+      },
+      "arithmetic_mean": 176.44179106173948,
+      "geometric_mean": 67.77018600501317,
+      "reported_ratio": 176.44179106173948
+    },
+    "adjacency_diffusion_planar_none_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 110.70404894308972,
+        "clustering": 18.211818501180154,
+        "spectral": 13.14053529409788,
+        "wavelet": 358.9340510183014,
+        "orbit": 1105.0829516789406
+      },
+      "share_of_total": {
+        "degree": 0.06892838681496244,
+        "clustering": 0.01133934379309433,
+        "spectral": 0.008181777526248133,
+        "wavelet": 0.22348545826331576,
+        "orbit": 0.6880650336023793
+      },
+      "arithmetic_mean": 321.21468108712196,
+      "geometric_mean": 100.99686263344208,
+      "reported_ratio": 321.21468108712196
+    },
+    "adjacency_diffusion_planar_none_k8_seed1": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 94.60290995638132,
+        "clustering": 17.581120417911656,
+        "spectral": 12.30165883470367,
+        "wavelet": 356.6217715483149,
+        "orbit": 1134.6326060612569
+      },
+      "share_of_total": {
+        "degree": 0.05855082256062188,
+        "clustering": 0.010881156430396204,
+        "spectral": 0.007613637296824567,
+        "wavelet": 0.22071729164364406,
+        "orbit": 0.7022370920685134
+      },
+      "arithmetic_mean": 323.14801336371363,
+      "geometric_mean": 96.29318840209324,
+      "reported_ratio": 323.14801336371363
+    },
+    "adjacency_diffusion_planar_none_k8_seed2": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 209.653490886177,
+        "clustering": 17.933134524082064,
+        "spectral": 13.758915406904773,
+        "wavelet": 353.54271605079674,
+        "orbit": 1091.7971768569587
+      },
+      "share_of_total": {
+        "degree": 0.12429910562704799,
+        "clustering": 0.010632174894922802,
+        "spectral": 0.008157368962699365,
+        "wavelet": 0.20960797371091536,
+        "orbit": 0.6473033768044145
+      },
+      "arithmetic_mean": 337.3370867449838,
+      "geometric_mean": 114.8326198602391,
+      "reported_ratio": 337.3370867449838
+    },
+    "adjacency_diffusion_planar_random_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 172.57879181292273,
+        "clustering": 19.131207521715286,
+        "spectral": 13.062016204798002,
+        "wavelet": 366.57351796270746,
+        "orbit": 1128.6253477393998
+      },
+      "share_of_total": {
+        "degree": 0.10151867524159172,
+        "clustering": 0.01125384424687507,
+        "spectral": 0.007683670555144093,
+        "wavelet": 0.2156351747007496,
+        "orbit": 0.6639086352556395
+      },
+      "arithmetic_mean": 339.9941762483087,
+      "geometric_mean": 112.2768403717556,
+      "reported_ratio": 339.9941762483087
+    },
+    "adjacency_diffusion_planar_random_k8_seed1": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 108.93421644009413,
+        "clustering": 17.87540399498886,
+        "spectral": 12.620141706244732,
+        "wavelet": 353.38819981707115,
+        "orbit": 1100.2712952679115
+      },
+      "share_of_total": {
+        "degree": 0.06837922981776734,
+        "clustering": 0.011220591635971045,
+        "spectral": 0.007921804537315981,
+        "wavelet": 0.22182573776961306,
+        "orbit": 0.6906526362393326
+      },
+      "arithmetic_mean": 318.6178514452621,
+      "geometric_mean": 99.09397448659224,
+      "reported_ratio": 318.6178514452621
+    },
+    "adjacency_diffusion_planar_random_k8_seed2": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 160.6438413482934,
+        "clustering": 17.626561898048376,
+        "spectral": 13.248910416554692,
+        "wavelet": 354.35245157048934,
+        "orbit": 1058.3348014308094
+      },
+      "share_of_total": {
+        "degree": 0.10013912465296658,
+        "clustering": 0.01098771334336403,
+        "spectral": 0.008258855618640574,
+        "wavelet": 0.22088954062027918,
+        "orbit": 0.6597247657647497
+      },
+      "arithmetic_mean": 320.84131333283904,
+      "geometric_mean": 107.06661559541946,
+      "reported_ratio": 320.84131333283904
+    },
+    "discrete_adjacency_diffusion_cycles_planar_low_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 5.67522850523135,
+        "clustering": 15.230298246421063,
+        "spectral": 3.641704422985845,
+        "wavelet": 50.04952996782966,
+        "orbit": 125.43369939294655
+      },
+      "share_of_total": {
+        "degree": 0.02837182142180079,
+        "clustering": 0.07613989492227664,
+        "spectral": 0.01820574933056807,
+        "wavelet": 0.25020954225603365,
+        "orbit": 0.6270729920693208
+      },
+      "arithmetic_mean": 40.00609210708289,
+      "geometric_mean": 18.161935862381274,
+      "reported_ratio": 40.00609210708289
+    },
+    "discrete_adjacency_diffusion_cycles_planar_none_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 108.10128247832198,
+        "clustering": 15.353848307710797,
+        "spectral": 6.967225423681029,
+        "wavelet": 146.10164159504737,
+        "orbit": 1035.8207743494606
+      },
+      "share_of_total": {
+        "degree": 0.08237262400251198,
+        "clustering": 0.011699553831808514,
+        "spectral": 0.005308990115641858,
+        "wavelet": 0.11132870316938182,
+        "orbit": 0.7892901288806559
+      },
+      "arithmetic_mean": 262.46895443084435,
+      "geometric_mean": 70.56828017905158,
+      "reported_ratio": 262.46895443084435
+    },
+    "discrete_adjacency_diffusion_planar_none_k8": {
+      "metrics_used": [
+        "clustering",
+        "degree",
+        "orbit",
+        "spectral",
+        "wavelet"
+      ],
+      "n_metrics": 5,
+      "has_orbit": true,
+      "per_metric": {
+        "degree": 26.12765342951766,
+        "clustering": 17.25937753852468,
+        "spectral": 12.324805595652313,
+        "wavelet": 360.6572227927695,
+        "orbit": 1176.4596835065397
+      },
+      "share_of_total": {
+        "degree": 0.016403303585892693,
+        "clustering": 0.010835676852178155,
+        "spectral": 0.007737684073618169,
+        "wavelet": 0.22642561192392355,
+        "orbit": 0.7385977235643875
+      },
+      "arithmetic_mean": 318.56574857260074,
+      "geometric_mean": 74.90580216345353,
+      "reported_ratio": 318.56574857260074
+    }
+  },
+  "headline_improvement": {
+    "metrics": [
+      "clustering",
+      "degree",
+      "orbit",
+      "spectral",
+      "wavelet"
+    ],
+    "delta_per_metric": {
+      "clustering": -3.2328914548199474,
+      "degree": 101.80594429764709,
+      "orbit": -714.1071966946464,
+      "spectral": -5.508395448826303,
+      "wavelet": -228.58837991754248
+    },
+    "contribution_share": {
+      "clustering": 0.0038050539142275848,
+      "degree": -0.11982372815637019,
+      "orbit": 0.8404910656403045,
+      "spectral": 0.006483280356481152,
+      "wavelet": 0.2690443282453569
+    },
+    "baseline_mean": 321.21468108712196,
+    "treated_mean": 151.28849724348433,
+    "relative_change": -0.5290112620896961
+  }
+}

@@ -38,6 +38,9 @@ from fald.models import (
 )
 from fald.paths import checkpoints_dir, results_dir
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from report_breakdown import diagnose_validity
+
 
 def _conditioned_tensors(graphs, band: str, k: int, seed: int, tag: str):
     adjacency, node_mask = graphs_to_dense(graphs)
@@ -304,6 +307,8 @@ def main() -> int:
 
     evaluation = None
     er_ratio = None
+    metrics = None
+    validity_diagnosis = None
     ratio_gate_passed = None
     validity_gate_passed = None
     gate_passed = None
@@ -343,6 +348,15 @@ def main() -> int:
                 f"novel={evaluation['vun/novel']:.3f} "
                 f"joint={evaluation['vun/vun']:.3f}"
             )
+            # `is_planar` is `connected AND planar`, so a 0.000 above cannot say which half
+            # failed. Recording both separately is what makes the failure diagnosable.
+            validity_diagnosis = diagnose_validity(generated)
+            print(
+                f"  diagnosis: connected={validity_diagnosis['connected_frac']:.3f} "
+                f"planar={validity_diagnosis['planar_frac']:.3f} "
+                f"components={validity_diagnosis['mean_components']:.1f} "
+                f"edges/(3n-6)={validity_diagnosis['mean_edges_over_bound']:.2f}"
+            )
 
     report = {
         "dataset": args.dataset,
@@ -360,7 +374,12 @@ def main() -> int:
         "generated_density_mean": float(np.mean(densities)),
         "generated_density_std": float(np.std(densities)),
         "evaluation": evaluation,
+        # Ratio is a mean over whichever metrics were available, and orbit shifts that mean by
+        # ~2.5x, so a report without this field cannot be compared against another.
+        "metrics": metrics,
+        "orca_available": orca.is_available(),
         "er_ratio": er_ratio,
+        "validity_diagnosis": validity_diagnosis,
         "ratio_gate_passed": ratio_gate_passed,
         "validity_gate_passed": validity_gate_passed,
         "gate_passed": gate_passed,
