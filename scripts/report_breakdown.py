@@ -92,8 +92,44 @@ def improvement_decomposition(
     }
 
 
-def diagnose_validity(graphs: list[nx.Graph]) -> dict:
-    """Separate the two failure modes `is_planar` collapses into one boolean."""
+def distance_to_planar(graph: nx.Graph, max_removals: int = 12) -> int | None:
+    """Greedy upper bound on the edges that must be removed to make `graph` planar.
+
+    Planarity is 0/1, which cannot distinguish a sample two edges away from one that is
+    hopeless -- and on this dataset almost every sample fails, so the boolean carries little
+    signal. Each round removes the edge whose deletion most reduces the Kuratowski subgraph,
+    approximated by removing an edge of the reported violating subgraph.
+
+    Returns None when the graph is still non-planar after `max_removals`, so a caller can
+    treat "far" separately from a number.
+    """
+    if nx.check_planarity(graph)[0]:
+        return 0
+
+    working = graph.copy()
+    for removed in range(1, max_removals + 1):
+        is_planar, counterexample = nx.check_planarity(working, counterexample=True)
+        if is_planar:
+            return removed - 1
+        edges = list(counterexample.edges())
+        if not edges:
+            return None
+        # Remove the highest-degree edge of the violating subgraph: it participates in the
+        # most alternative Kuratowski subgraphs, so it is the greedy best single deletion.
+        degrees = dict(counterexample.degree())
+        working.remove_edge(*max(edges, key=lambda e: degrees[e[0]] + degrees[e[1]]))
+        if nx.check_planarity(working)[0]:
+            return removed
+    return None
+
+
+def diagnose_validity(graphs: list[nx.Graph], *, with_distance: bool = False) -> dict:
+    """Separate the two failure modes `is_planar` collapses into one boolean.
+
+    `with_distance` adds the graded distance-to-planarity, which costs ~40s per 32 samples on
+    graphs far from planar -- the usual case for generated output. Off by default so it does
+    not tax every sweep run; turn it on when comparing how close arms get.
+    """
     connected, planar, both, over_bound = [], [], [], []
     components, edge_ratios = [], []
 
@@ -109,6 +145,10 @@ def diagnose_validity(graphs: list[nx.Graph]) -> dict:
         components.append(nx.number_connected_components(graph))
         edge_ratios.append(m / bound)
 
+    # Graded distance, because the boolean saturates at 0% and hides real progress.
+    distances = [distance_to_planar(graph) for graph in graphs] if with_distance else []
+    measured = [d for d in distances if d is not None]
+
     return {
         "n_graphs": len(graphs),
         "connected_frac": float(np.mean(connected)),
@@ -117,6 +157,11 @@ def diagnose_validity(graphs: list[nx.Graph]) -> dict:
         "exceeds_3n_minus_6_frac": float(np.mean(over_bound)),
         "mean_components": float(np.mean(components)),
         "mean_edges_over_bound": float(np.mean(edge_ratios)),
+        "mean_distance_to_planar": float(np.mean(measured)) if measured else None,
+        "median_distance_to_planar": float(np.median(measured)) if measured else None,
+        "beyond_search_frac": (
+            float(np.mean([d is None for d in distances])) if with_distance else None
+        ),
     }
 
 

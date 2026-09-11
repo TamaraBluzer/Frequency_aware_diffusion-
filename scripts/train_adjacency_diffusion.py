@@ -157,6 +157,11 @@ def main() -> int:
     parser.add_argument("--no-full-eval", action="store_true")
     parser.add_argument("--eval-only", action="store_true")
     parser.add_argument("--allow-gate-failure", action="store_true")
+    parser.add_argument(
+        "--planarity-distance",
+        action="store_true",
+        help="Also compute distance-to-planarity (~40s/32 samples). Off by default.",
+    )
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
 
@@ -354,7 +359,9 @@ def main() -> int:
             )
             # `is_planar` is `connected AND planar`, so a 0.000 above cannot say which half
             # failed. Recording both separately is what makes the failure diagnosable.
-            validity_diagnosis = diagnose_validity(generated)
+            validity_diagnosis = diagnose_validity(
+                generated, with_distance=args.planarity_distance
+            )
             print(
                 f"  diagnosis: connected={validity_diagnosis['connected_frac']:.3f} "
                 f"planar={validity_diagnosis['planar_frac']:.3f} "
