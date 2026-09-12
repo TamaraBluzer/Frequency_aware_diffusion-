@@ -24,8 +24,12 @@ each ending in a gate that must pass before moving on.
 - [x] **Stage 6.5** — Transfer conditioning to discrete DiGress for valid generation
 - [x] **Stage 7** — The frequency sweep (headline result)
 - [x] **Stage 8** — Learned spectral prior
-- [ ] **Stage 9** — Latent transfer, downstream experiment, and remaining controls
-- [ ] **Stage 10** — Report
+- [x] **Stage 9** — Downstream experiment (gate: downstream table with error bars); latent
+      transfer, DualDiff-style cluster conditioning, Laplacian/SignNet ablations, and the
+      memorization audit remain open as optional stretch items
+- [x] **Stage 10** — Report (see [docs/REPORT.md](docs/REPORT.md)); figures for Stage 6.5's
+      scaled-up sweep and Stage 7's full 60-config grid are not reproducible from committed
+      `results/` data — see the report's "Reproducibility gap" section
 
 ---
 
