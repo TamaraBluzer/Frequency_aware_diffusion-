@@ -75,11 +75,25 @@ The honest framing is that this project found one genuine frequency effect (low 
 near-oracle regime (high k=32), and the sweep is what separates them. Reporting high k=32's
 10.49 without its 98.5% leakage would be misleading.
 
-## Caveats
+## Seed confirmation
 
-**Single seed.** The two minima are sharp enough that seed noise is a real alternative
-explanation. A confirmation run over seeds 1 and 2 for high k=32, low k=8 and the baseline is
-the minimum needed before building a claim on these numbers.
+Both minima were re-run on seeds 1 and 2 (`results/k_sweep_planar_seedcheck.json`):
+
+| Arm | seed 0 | seed 1 | seed 2 | mean +/- sd | vs baseline |
+|---|---|---|---|---|---|
+| high k=32 | 10.49 | 10.94 | 11.89 | **11.11 +/- 0.58** | **29.7x** |
+| low k=8 | 116.27 | 146.79 | 162.67 | **141.91 +/- 19.25** | 2.3x |
+| none | 335.74 | 332.93 | 321.50 | 330.06 +/- 6.16 | -- |
+
+**Both reproduce.** high k=32 is extremely stable (sd 0.58 on a mean of 11.11) and produced
+valid planar graphs in every seed: 3.1%, 6.25%, 3.1%. low k=8 is noisier but never comes near
+baseline.
+
+One correction to the seed-0 sweep: **116.27 was low k=8's most favourable draw.** The
+three-seed mean of 141.91 is the number to report, and it sits much closer to the paper's
+existing 157.97 pilot than the single-seed figure suggested.
+
+## Caveats
 
 **Provenance.** The Colab VM was recycled before the JSON reports were downloaded. Ratio and
 validity were recovered from the notebook's stored stdout; per-metric ratios, validation losses
