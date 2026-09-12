@@ -1,0 +1,96 @@
+{
+  "experiment": "k_sweep_seed_confirmation",
+  "dataset": "planar",
+  "epochs": 200,
+  "orca_available": true,
+  "purpose": "Confirm the two minima found at seed 0 reproduce across seeds, against the unconditioned baseline.",
+  "provenance": {
+    "hardware": "Google Colab Tesla T4",
+    "recovered_from": "Colab notebook cell output (runtime disconnected after all 6 runs completed)",
+    "caveat": "Ratio and validity transcribed from stdout; per-metric ratios unavailable. ORCA verified present before the runs, so these are 5-metric ratios comparable to Table 1."
+  },
+  "rows": [
+    {
+      "band": "high",
+      "k": 32,
+      "seed": 0,
+      "ratio": 10.49,
+      "validity": 0.03125
+    },
+    {
+      "band": "high",
+      "k": 32,
+      "seed": 1,
+      "ratio": 10.94,
+      "validity": 0.0625
+    },
+    {
+      "band": "high",
+      "k": 32,
+      "seed": 2,
+      "ratio": 11.89,
+      "validity": 0.03125
+    },
+    {
+      "band": "low",
+      "k": 8,
+      "seed": 0,
+      "ratio": 116.27,
+      "validity": 0.0
+    },
+    {
+      "band": "low",
+      "k": 8,
+      "seed": 1,
+      "ratio": 146.79,
+      "validity": 0.0
+    },
+    {
+      "band": "low",
+      "k": 8,
+      "seed": 2,
+      "ratio": 162.67,
+      "validity": 0.0
+    },
+    {
+      "band": "none",
+      "k": 2,
+      "seed": 0,
+      "ratio": 335.74,
+      "validity": 0.0
+    },
+    {
+      "band": "none",
+      "k": 2,
+      "seed": 1,
+      "ratio": 332.93,
+      "validity": 0.0
+    },
+    {
+      "band": "none",
+      "k": 2,
+      "seed": 2,
+      "ratio": 321.5,
+      "validity": 0.0
+    }
+  ],
+  "aggregates": {
+    "high_k32": {
+      "ratio_mean": 11.11,
+      "ratio_std": 0.58,
+      "validity_mean": 0.0417,
+      "vs_baseline": "29.7x"
+    },
+    "low_k8": {
+      "ratio_mean": 141.91,
+      "ratio_std": 19.25,
+      "validity_mean": 0.0,
+      "vs_baseline": "2.3x"
+    },
+    "none": {
+      "ratio_mean": 330.06,
+      "ratio_std": 6.16,
+      "validity_mean": 0.0
+    }
+  }
+}
