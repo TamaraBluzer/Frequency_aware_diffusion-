@@ -64,6 +64,21 @@ connectivity and planarity separately alongside component counts and the 3n-6 ed
 Report it as a deviation; never compare it directly to SPECTRE's SBM numbers. See
 [ENVIRONMENT.md](ENVIRONMENT.md).
 
+## Every reported number is on the validation split
+
+`--eval-split test` is implemented and works, but has never been used: every result in the
+repository is scored against `val`. That split also selected the checkpoints, so the reported
+numbers are optimistic in the usual way, and the test split remains genuinely held out.
+
+Re-scoring on test is cheap **if the checkpoints exist**, and they do not. The `samples_path`
+fields in the saved reports point at a Windows working directory on a different machine
+(`C:\Users\...\FinalProject\results\...`), and `checkpoints/` is gitignored, so nothing from the
+original runs survives in the repository. Producing test numbers now means retraining, which
+costs about as much as the sweep that produced them.
+
+Worth doing before publication; not a cheap fix, and the reported numbers should be described
+as validation-split results until it happens.
+
 ## Data loading
 
 `fald.data.load_splits` downloads SPECTRE's released tensors and reproduces DiGress's split
