@@ -78,6 +78,8 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass, asdict
+from functools import lru_cache
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -102,6 +104,12 @@ ORIENTATION_RULES = ("band", "max", "neg", "pos")
 PER_GRAPH_RULES = ("max", "neg", "pos")
 
 NEGATIVE, POSITIVE = -1.0, 1.0
+
+# Greedy-search cap for the distance to planarity, matching scripts/report_breakdown.py so
+# the two report the same estimator. Defined once: `planar_distance` and
+# `summarize_planar_distance` must agree, or the censoring count describes a different cap
+# than the search used.
+MAX_REMOVALS = 12
 
 
 @dataclass
@@ -133,6 +141,10 @@ class LeakageRow:
     band_orientation: float
     n_graphs: int
     orientation_rule: str = "band"
+    # Graded distance to planarity of the selected reconstructions, or None when the sweep was
+    # run without --distance-to-planar. See `summarize_planar_distance` for the shape, and read
+    # `median` together with `n_censored`: it is null whenever censoring reaches half the cell.
+    planar_distance: dict | None = None
 
 
 @dataclass
@@ -266,6 +278,72 @@ def band_orientation(reconstructions: list[Reconstruction]) -> float:
     return POSITIVE if votes * 2 > len(reconstructions) else NEGATIVE
 
 
+@lru_cache(maxsize=1)
+def _report_breakdown():
+    """Load scripts/report_breakdown.py by path -- `scripts/` is not a package.
+
+    Imported lazily and reused rather than reimplemented: the greedy planarity distance must
+    be the *same* estimator the rest of the paper reports, or the numbers are not comparable.
+    """
+    import importlib.util
+    import sys
+
+    path = Path(__file__).resolve().parent / "report_breakdown.py"
+    spec = importlib.util.spec_from_file_location("fald_report_breakdown", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def planar_distance(graph: nx.Graph, max_removals: int = MAX_REMOVALS) -> int | None:
+    """`report_breakdown.distance_to_planar` with an exact early-out for hopeless graphs.
+
+    Euler's bound says a simple planar graph on `n >= 3` nodes has at most `3n - 6` edges. A
+    graph with `m - (3n - 6) > max_removals` therefore still exceeds the bound after *any*
+    `max_removals` deletions and cannot be made planar, so the greedy search would spend 12
+    rounds of `check_planarity` to return None. Skipping it is a shortcut, not an
+    approximation -- the answer is identical.
+
+    This is what makes the SBM sweep tractable: every SBM reconstruction overshoots the bound
+    by 26 edges or more, so the whole dataset resolves without a search. Planar sits just
+    *under* the bound (m - (3n - 6) is -12 to -5), so it is searched for real.
+    """
+    n, m = graph.number_of_nodes(), graph.number_of_edges()
+    if n >= 3 and m - (3 * n - 6) > max_removals:
+        return None
+    return _report_breakdown().distance_to_planar(graph, max_removals=max_removals)
+
+
+def summarize_planar_distance(values: list[int | None], max_removals: int = MAX_REMOVALS) -> dict:
+    """Censoring-aware summary of one cell's distances.
+
+    `distance_to_planar` returns None for a graph still non-planar after `max_removals`
+    deletions, which is right-censoring: the true distance is known only to exceed the cap.
+    A median over the *measured* subset silently drops those and reads far too low -- the
+    defect in the currently reported "high k=32 median 4", which is a median of three
+    survivors out of 32.
+
+    Censored values sort above every measured one, so the median of the full cell is exact
+    whenever fewer than half of it is censored, and undefined otherwise. `median` is null in
+    that second case, and `n_censored` is the number to quote instead: "> max_removals in N
+    of n_graphs cases".
+    """
+    n = len(values)
+    censored = sum(1 for value in values if value is None)
+    ranked = sorted(float("inf") if value is None else float(value) for value in values)
+    median = float(np.median(ranked)) if n else float("nan")
+    return {
+        "max_removals": max_removals,
+        "n_graphs": n,
+        "n_censored": censored,
+        "censored_frac": censored / n if n else 0.0,
+        "median": median if np.isfinite(median) else None,
+        "measured_values": sorted(value for value in values if value is not None),
+        "per_graph": list(values),
+    }
+
+
 def _chance_recovery(graph: nx.Graph) -> float:
     """Expected recovery when `m` pairs are drawn uniformly from the `n(n-1)/2` candidates."""
     n = graph.number_of_nodes()
@@ -297,12 +375,17 @@ def evaluate_band(
     seed: int,
     cache_tag: str,
     rule: str = "band",
+    with_distance: bool = False,
 ) -> LeakageRow:
     """Score one (band, k) cell.
 
     Two passes, because the primary "band" rule is not resolvable graph by graph: every graph
     is reconstructed under both signs first, the cell then votes on a single sign, and the
     reported recovery, connectivity and planarity all come from that one orientation.
+
+    `with_distance` adds the graded distance to planarity of the selected reconstructions. It
+    is off by default because it costs ~50s per Planar cell (SBM resolves instantly via the
+    Euler bound in `planar_distance`).
     """
     if rule not in ORIENTATION_RULES:
         raise ValueError(f"unknown orientation rule {rule!r}; expected one of {ORIENTATION_RULES}")
@@ -351,6 +434,7 @@ def evaluate_band(
     connected: list[bool] = []
     planar: list[bool] = []
     valid: list[bool] = []
+    distances: list[int | None] = []
     for reconstruction, orientation in zip(rebuilt, orientations):
         graph, recovery = reconstruction.at(orientation)
         selected.append(recovery)
@@ -360,6 +444,8 @@ def evaluate_band(
         connected.append(nx.is_connected(graph))
         planar.append(nx.check_planarity(graph)[0])
         valid.append(is_planar(graph))
+        if with_distance:
+            distances.append(planar_distance(graph, max_removals=MAX_REMOVALS))
 
     mean_selected = float(np.mean(selected))
     mean_chance = float(np.mean(chances))
@@ -381,6 +467,10 @@ def evaluate_band(
         band_orientation=voted,
         n_graphs=len(graphs),
         orientation_rule=rule,
+        planar_distance=(
+            summarize_planar_distance(distances, max_removals=MAX_REMOVALS)
+            if with_distance else None
+        ),
     )
 
 
@@ -395,6 +485,19 @@ def _print_row(row: LeakageRow) -> None:
         f"connected={row.connected_frac:5.1%} planar={row.planar_frac:5.1%} "
         f"valid={row.valid_frac:5.1%}"
     )
+    distance = row.planar_distance
+    if distance is not None:
+        cap, censored, total = distance["max_removals"], distance["n_censored"], distance["n_graphs"]
+        median = distance["median"]
+        verdict = (
+            f"median {median:g}" if median is not None
+            else f"median n/a (censoring dominates)"
+        )
+        measured = ", ".join(str(v) for v in distance["measured_values"]) or "none"
+        print(
+            f"{'':>9} {'':<7} distance-to-planar: >{cap} in {censored}/{total}, "
+            f"{verdict}; measured: [{measured}]"
+        )
 
 
 def main() -> None:
@@ -419,6 +522,16 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--distance-to-planar",
+        action="store_true",
+        help=(
+            "also measure the greedy distance to planarity of each selected reconstruction, "
+            "reusing scripts/report_breakdown.py. Costs ~50s per Planar cell; SBM is free "
+            "because every reconstruction fails Euler's bound outright. Off by default; the "
+            "committed results files were produced with it on."
+        ),
+    )
+    parser.add_argument(
         "--full-spectrum",
         action="store_true",
         help=(
@@ -440,13 +553,19 @@ def main() -> None:
             max_k = min(g.number_of_nodes() for g in graphs) - 1
             if k > max_k:
                 continue
-            row = evaluate_band(graphs, band, k, args.seed, cache_tag, rule=args.orientation_rule)
+            row = evaluate_band(
+                graphs, band, k, args.seed, cache_tag,
+                rule=args.orientation_rule, with_distance=args.distance_to_planar,
+            )
             rows.append(row)
             _print_row(row)
         if args.full_spectrum and band in ("low", "high", "random"):
             # low/high/random all collapse to the same selection when k covers the whole
             # non-trivial spectrum, so this is one sanity check, not three.
-            row = evaluate_band(graphs, band, None, args.seed, cache_tag, rule=args.orientation_rule)
+            row = evaluate_band(
+                graphs, band, None, args.seed, cache_tag,
+                rule=args.orientation_rule, with_distance=args.distance_to_planar,
+            )
             rows.append(row)
             _print_row(row)
 
@@ -473,6 +592,7 @@ def main() -> None:
         "split": args.split,
         "seed": args.seed,
         "orientation_rule": args.orientation_rule,
+        "distance_to_planar": args.distance_to_planar,
         "n_graphs": len(graphs),
         "rows": [asdict(row) for row in rows],
     }

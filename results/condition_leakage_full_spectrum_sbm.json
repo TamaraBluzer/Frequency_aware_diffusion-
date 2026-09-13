@@ -5,6 +5,7 @@
   "split": "val",
   "seed": 0,
   "orientation_rule": "band",
+  "distance_to_planar": true,
   "n_graphs": 32,
   "rows": [
     {
@@ -24,7 +25,49 @@
       "orientation_pos_frac": 0.0,
       "band_orientation": -1.0,
       "n_graphs": 32,
-      "orientation_rule": "band"
+      "orientation_rule": "band",
+      "planar_distance": {
+        "max_removals": 12,
+        "n_graphs": 32,
+        "n_censored": 32,
+        "censored_frac": 1.0,
+        "median": null,
+        "measured_values": [],
+        "per_graph": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
     }
   ]
 }

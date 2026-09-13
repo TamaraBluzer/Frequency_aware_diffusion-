@@ -403,13 +403,17 @@ added chord creates a $K_5$ or $K_{3,3}$ minor. Validity here is therefore close
 exactness rather than a graded quality measure, which is why an arm can improve Ratio $2.3\times$
 while pinned at zero. The usual prescription --- add structural features --- has negative
 precedent in our own runs: the discrete arm of \S\ref{sec:e2e} includes cycle counts and still
-reports $0\%$ validity at every scale. We therefore also report a greedy \emph{distance-to-planarity} heuristic --- repeatedly delete an
-edge of a reported Kuratowski subgraph, up to a cap of 12 deletions. It is an upper bound on the
-number of deletions a graph needs, not the minimum, and we do not compute the minimum. It is also
-heavily censored on these reconstructions --- $90.6\%$ of \texttt{high}, $k{=}32$ exceed the cap
---- so a median over the arm is not defined, and the medians we previously quoted were taken over
-the uncensored minority. We therefore quote none here and report the metric, with its censoring,
-in the repository.
+reports $0\%$ validity at every scale. We had hoped a graded \emph{distance-to-planarity} would
+separate arms the boolean cannot, and report here that it does not. The measurement is greedy ---
+repeatedly delete an edge of a reported Kuratowski subgraph, up to a cap of 12 --- so it is an
+upper bound on the deletions a graph needs, never the minimum. At that cap it is also almost
+entirely right-censored: on Planar, \emph{every} graph in 24 of the 25 cells exceeds it, and the
+single exception, \texttt{high} $k{=}32$, terminates on 3 of 32 graphs, at distances $0$, $4$ and
+$11$. On SBM no cell has a single terminating graph. A median over three survivors is not a
+property of an arm, and the medians we previously quoted were exactly that, so we withdraw them.
+The honest summary is that these reconstructions are more than 12 edge deletions from planar
+essentially everywhere, which is a bound rather than a ranking; separating arms this way would
+need a far larger cap and an exact solver we do not have.
 
 \subsection{From oracle to end-to-end}
 \label{sec:e2e}
@@ -513,10 +517,13 @@ and the \texttt{low} band was reported as leak-free at $0.0\%$ recovery where it
 $72.7\%$ at $k{=}8$. Table~\ref{tab:leakage} reports the corrected grid; the frozen pre-fix numbers
 are retained in the repository alongside it, as
 \texttt{condition\_leakage\_}\allowbreak\texttt{*\_single\_}\allowbreak\texttt{orientation.json}.
-A second, smaller defect is
-uncorrected: the probe does not crop a donor condition to the target's node count, which is a
-no-op on Planar's fixed $n{=}64$ but inflates the SBM \texttt{shuffled} row above chance, so that
-row carries no signal and we draw nothing from it. Together these make
+A second defect is uncorrected and is
+larger than we first thought: the probe sizes its reconstruction from the donor's node count where
+the model's conditioning path crops to the target's, so on SBM, where $n$ ranges over 55--172, all
+$32$ of $32$ \texttt{shuffled} reconstructions have the wrong node count --- by up to 108 nodes.
+That row's elevation above chance is an artifact of the probe rather than a property of the
+condition, so the \texttt{shuffled} control is weaker on SBM than even our earlier caveat allowed
+and we draw nothing from it. Planar's fixed $n{=}64$ makes the defect a no-op there. Together these make
 this an exploratory study: it reports differences observed under one protocol on one benchmark, and
 leaves the mechanism behind them open.
 
