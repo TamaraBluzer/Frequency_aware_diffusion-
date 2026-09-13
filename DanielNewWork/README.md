@@ -1,72 +1,125 @@
 # DanielNewWork
 
-Parked work from a paper-editing pass that ran against the pre-correction paper.
-Nothing here is wired into the build. `paper/` and `scripts/` are untouched and
-byte-identical to `origin/main`; this directory is additive and self-contained.
+Additive only. `paper/` and `scripts/` are untouched and byte-identical to
+`origin/main`; nothing here is wired into the build.
 
-## Why it is parked instead of merged
+Two things worth acting on are in here, and they are not the figure:
 
-The pass started from commit `902532e`, before the three commits ending at
-`13dbf6f` fixed the orientation-selection bug in the leakage probe. That fix
-inverted the paper's headline: `low` `k=8` went from a reported `0.0%` edge
-recovery to `72.7%`, which makes it the *highest*-leaking arm at its own cutoff
-rather than a leak-free one. `paper/main.tex` now says so directly and withdraws
-the old claim.
+1. **`results/*.pt` is gitignored, so the paper's copying numbers are not
+   reproducible and do not match this machine's sample files.**
+2. **Twelve saved sample files exist here**, not one. The audit the paper
+   restricts to a single arm runs across all twelve, and it holds in every one.
 
-So `main_daniel.tex` argues a conclusion the data no longer supports. It is kept
-for the prose and layout work, not the argument. Do not merge it.
+Details below.
 
-## Contents
+---
 
-| file | state |
-|---|---|
-| `figures/samples.pdf` | Reusable. Regenerates from committed artifacts. |
-| `make_samples_figure.py` | Reusable. Standalone; reproduces the above. |
-| `main_daniel.tex` | Framing is wrong. Layout/prose trims may be worth lifting. |
-| `main_daniel.pdf` | Build of the above, 5 body pages. |
-| `paper_README.patch` | Unapplied diff against the old `paper/README.md`. |
+## 1. The copying numbers do not reproduce across machines
 
-### The figure is the part worth keeping
+`.gitignore` line 31 is `*.pt`, so no sample file is in the repository. Each
+machine holds its own copy, and the two copies of `low k=8 seed 0` are not the
+same graphs. Running the committed `bootstrap_samples.py` functions on this
+machine's file:
 
-`paper/main.tex` currently has one figure (`sweep.pdf`) and no qualitative one,
-so this fills a real gap. It puts a real Planar validation graph beside the
-`none` and `low` `k=8` samples, annotated with edge and triangle counts:
+| quantity | `results/bootstrap_low_k8.json` | here |
+|---|---|---|
+| matched edge $F_1$ | 0.6529 | **0.6223** |
+| matched intersection | 115.44 | **110.25** |
+| matched Jaccard | 0.4853 | **0.4521** |
+| `connected_frac` | 0.46875 | **0.6875** |
+
+The mismatched (off-diagonal) values agree to within 0.3%, so this is not a
+pairing or formula difference — the two files' generated graphs differ. The
+formula, the pairing (`sample i` ↔ `val graph i`) and the loader are identical;
+I ran *her* `upper_triangle_matrix` and `overlap_matrix` to check.
+
+`connected_frac` is the one that matters for the paper, because §4.4 quotes
+`46.9%` connected with a bootstrap interval of `[31.3%, 62.5%]`, and this
+machine's file gives `68.75%` — outside that interval. `connected_frac` depends
+on nothing but the sample file, so this is not a platform effect like the ORCA
+discrepancy. It is two different files with one name.
+
+`results/adjacency_diffusion_planar_low_k8.json` records `samples_path` as a
+Windows OneDrive path on this machine, while `bootstrap_low_k8.json` records
+`/Users/tamarabluzer/...`. The audit ran against a file other than the one the
+report it audits points to.
+
+**This does not touch the conclusion.** Copying replicates on this machine's
+file and on eleven others (below). Only the digits move. But any digit quoted
+from a `.pt` file should be regenerated on one machine, from files committed or
+hashed, before submission.
+
+## 2. The audit covers twelve arms, not one
+
+§4.3 calls itself "1 arm of 12" and names the missing sample files as the
+blocker. Twelve are present here: 4 bands × 3 seeds at k=8.
 
 ```
-real 118 triangles | low k=8 116 | none 15 | high 15 | random 13
+python DanielNewWork/audit_copying_all_arms.py   ->  copying_all_arms.json
 ```
 
-Two anti-cherry-picking rules, both stated in the caption: sample index 0 from
-every arm, and one shared Kamada-Kawai layout, so the real graph is not handed
-back the coordinates its triangulation came from.
+| arm | matched $F_1$ | mismatched | gap | top-1 |
+|---|---|---|---|---|
+| `low` k=8, seeds 0/1/2 | 0.622 / 0.613 / 0.617 | 0.088 | 0.53 | **32/32** each |
+| `high` k=8, seeds 0/1/2 | 0.342 / 0.336 / 0.332 | 0.086 | 0.25 | **32/32** each |
+| `none` k=8, seeds 0/1/2 | 0.082 / 0.090 / 0.084 | 0.085 | ~0.00 | 2/32, 0/32, 0/32 |
+| `random` k=8, seeds 0/1/2 | 0.105 / 0.111 / 0.109 | 0.085 | 0.02 | 7/32, 6/32, 6/32 |
 
-Regenerate with:
+What this settles, none of which needs retraining:
+
+- **Copying is not a one-run artifact.** Perfect top-1 retrieval in all three
+  seeds of both conditioned bands, 6 runs, 192 samples.
+- **`high` copies too**, at half the edge overlap but the same perfect
+  retrieval. The paper could not say this.
+- **`none` is a clean negative control**: matched indistinguishable from
+  mismatched, retrieval at chance. The effect requires the condition.
+- **`random` sits slightly above chance** (top-1 ~6/32 against 1/32, gap 0.02,
+  consistent across seeds). Small, but it is a donor-spectrum arm and should not
+  identify the target at all. Worth a look; it may be the same node-count defect
+  already found in the SBM `shuffled` row.
+
+The uncomfortable part, stated plainly: at k=8, `low` copies more than `high`
+(gap 0.53 against 0.25) *and* generates better. Across bands at fixed k,
+copying tracks quality — which cuts against the surviving defence rather than
+for it. The non-monotonicity argument is about varying k, and these files cannot
+speak to it.
+
+**Still unanswerable.** Every saved file is k=8. Whether k=16 reconstructs less
+than k=8 cannot be checked; those samples were never written.
+
+## 3. The figure
 
 ```
-python DanielNewWork/make_samples_figure.py
+python DanielNewWork/make_copying_figure.py    ->  figures/copying.pdf
 ```
 
-It reads only the seed-0 sample tensors, the k=8 arm reports, and the dataset
-split — none of which the leakage commits changed, which is why it still runs.
+A conditioning graph beside its own generated copy, with shared edges in green.
+`low k=8` reproduces 119 of the graph's 179 edges and visibly traces its
+outline; `none`, which never saw the spectrum, overlaps at the mismatched rate.
+Sample index 0 of each arm, fixed before inspection. All panels share one layout
+computed on the conditioning graph — that is what makes the comparison legible,
+and the caption says so rather than implying each graph was drawn on its own
+terms.
 
-**Caveat to carry into any caption.** The counts are measurements and they
-stand. The *reading* does not. Pre-correction, `low` `k=8` landing at 116
-triangles against the real graph's 118 looked like evidence that low-frequency
-conditioning teaches mesh density. At `72.7%` edge recovery that is confounded:
-the condition may simply be carrying the edges, and the triangle match may be
-transcription rather than learning. The honest version of this figure shows the
-confound instead of claiming a win — which is the same direction
-`paper/main.tex` already took with Table 3. Also worth noting on the same slide:
-validity is `0%` in every leakage cell but one, so recovering edges is not
-recovering graphs.
+`copying_figure_snippet.tex` is the drop-in for §4.3. It quotes only
+figure-local counts and defers the 32-graph numbers to the text, so it carries
+none of the discrepancy in §1. Needs `cp figures/copying.pdf paper/figures/`.
+Note the paper is at exactly 8 content pages, so this costs space it does not
+have.
 
-### On `main_daniel.tex`
+## 4. Superseded
 
-Reusable, framing-independent: compression of Related Work, Method and
-Discussion; folding Conclusion into Discussion; caption rewrites that name each
-number's source file. These were driven by a 5-page body limit.
+`make_samples_figure.py` and `figures/samples.pdf` were built to argue that
+low-frequency conditioning teaches mesh density — `low k=8` lands at 116
+triangles against the real graph's 118. That reading is dead: the two panels are
+a graph and its own partial copy (119 of 179 edges shared, $F_1$ 0.65 against
+0.10 for any other validation graph). Kept only so the superseded figure is
+traceable. Use `make_copying_figure.py` instead.
 
-Not reusable: anything about leakage, the `none` baselines, or the standard
-deviations, all of which the later commits revisited. Diff against
-`paper/main.tex` at `902532e` rather than at `HEAD` to isolate the edits, since
-diffing against `HEAD` mixes them with the corrections.
+`main_daniel.tex` / `main_daniel.pdf` are a pre-correction pass that argues
+`low k=8` is leak-free. Refuted twice over — by the probe fix (72.7% recovery)
+and by the copying result. Do not merge. Reusable parts are framing-independent
+only: the Related Work / Method / Discussion compression and the
+source-naming captions, driven by a 5-page limit. Diff against `paper/main.tex`
+at `902532e`, not at `HEAD`, or the edits mix with the corrections.
+`paper_README.patch` is the matching unapplied `paper/README.md` diff.

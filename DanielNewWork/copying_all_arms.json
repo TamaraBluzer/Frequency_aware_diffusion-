@@ -1,0 +1,373 @@
+{
+ "experiment": "copying_audit_all_saved_arms",
+ "purpose": "Extend the S4.3 conditioning-graph reconstruction audit from 1 arm to every saved sample file on this machine (4 bands x 3 seeds, k=8, Planar val split).",
+ "method": "Reuses upper_triangle_matrix and overlap_matrix from scripts/bootstrap_samples.py. Sample i is paired with validation graph i, per that script's documented pairing.",
+ "reproducibility_warning": "results/*.pt is gitignored, so these files are not in the repository and this audit is not reproducible from a clean clone. These numbers do not match results/bootstrap_low_k8.json, which ran on a different copy of low k=8 seed 0: matched F1 0.622 here against 0.653 there, connected_frac 0.688 against 0.469. The copying conclusion replicates; the specific digits do not.",
+ "coverage_still_missing": "Every saved file is k=8. Whether k=16 reconstructs less than k=8 -- the comparison that would settle the section -- remains unanswerable.",
+ "dataset": "planar",
+ "split": "val",
+ "n_reference": 32,
+ "generated_at_utc": "2026-09-13T11:56:45.225803+00:00",
+ "arms": {
+  "low_k8_seed0": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.6222587671808468,
+    "mismatched_mean": 0.08759923377802044,
+    "difference_mean": 0.5346595334028263
+   },
+   "jaccard": {
+    "matched_mean": 0.45208374371588034,
+    "mismatched_mean": 0.0459261558506778,
+    "difference_mean": 0.4061575878652025
+   },
+   "intersection": {
+    "matched_mean": 110.25,
+    "mismatched_mean": 15.526209677419354,
+    "difference_mean": 94.72379032258064
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.6875,
+   "mean_edges": 176.53125,
+   "band": "low",
+   "k": 8,
+   "seed": 0,
+   "samples_file": "adjacency_diffusion_planar_low_k8_samples.pt"
+  },
+  "low_k8_seed1": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.6129268031276436,
+    "mismatched_mean": 0.08773110550717932,
+    "difference_mean": 0.5251956976204643
+   },
+   "jaccard": {
+    "matched_mean": 0.44233999766393267,
+    "mismatched_mean": 0.045991764237802865,
+    "difference_mean": 0.3963482334261298
+   },
+   "intersection": {
+    "matched_mean": 108.3125,
+    "mismatched_mean": 15.508064516129032,
+    "difference_mean": 92.80443548387098
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.65625,
+   "mean_edges": 175.6875,
+   "band": "low",
+   "k": 8,
+   "seed": 1,
+   "samples_file": "adjacency_diffusion_planar_low_k8_seed1_samples.pt"
+  },
+  "low_k8_seed2": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.6169804950711271,
+    "mismatched_mean": 0.08903435327088298,
+    "difference_mean": 0.5279461418002441
+   },
+   "jaccard": {
+    "matched_mean": 0.4468631262163213,
+    "mismatched_mean": 0.04670950787919794,
+    "difference_mean": 0.4001536183371234
+   },
+   "intersection": {
+    "matched_mean": 110.25,
+    "mismatched_mean": 15.915322580645162,
+    "difference_mean": 94.33467741935483
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.6875,
+   "mean_edges": 179.59375,
+   "band": "low",
+   "k": 8,
+   "seed": 2,
+   "samples_file": "adjacency_diffusion_planar_low_k8_seed2_samples.pt"
+  },
+  "high_k8_seed0": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.34162555844445375,
+    "mismatched_mean": 0.08540290717222936,
+    "difference_mean": 0.2562226512722244
+   },
+   "jaccard": {
+    "matched_mean": 0.2064387329565984,
+    "mismatched_mean": 0.04472096789369367,
+    "difference_mean": 0.16171776506290472
+   },
+   "intersection": {
+    "matched_mean": 59.65625,
+    "mismatched_mean": 14.90524193548387,
+    "difference_mean": 44.75100806451613
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.8125,
+   "mean_edges": 171.3125,
+   "band": "high",
+   "k": 8,
+   "seed": 0,
+   "samples_file": "adjacency_diffusion_planar_high_k8_samples.pt"
+  },
+  "high_k8_seed1": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.3362982417174027,
+    "mismatched_mean": 0.08827179881369746,
+    "difference_mean": 0.24802644290370524
+   },
+   "jaccard": {
+    "matched_mean": 0.20245859668773164,
+    "mismatched_mean": 0.046298005281117695,
+    "difference_mean": 0.15616059140661395
+   },
+   "intersection": {
+    "matched_mean": 59.78125,
+    "mismatched_mean": 15.696572580645162,
+    "difference_mean": 44.08467741935484
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.9375,
+   "mean_edges": 177.71875,
+   "band": "high",
+   "k": 8,
+   "seed": 1,
+   "samples_file": "adjacency_diffusion_planar_high_k8_seed1_samples.pt"
+  },
+  "high_k8_seed2": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.33203990333423716,
+    "mismatched_mean": 0.0882799884330315,
+    "difference_mean": 0.24375991490120566
+   },
+   "jaccard": {
+    "matched_mean": 0.19946660785859074,
+    "mismatched_mean": 0.04629726887953043,
+    "difference_mean": 0.15316933897906032
+   },
+   "intersection": {
+    "matched_mean": 58.78125,
+    "mismatched_mean": 15.638104838709678,
+    "difference_mean": 43.14314516129032
+   },
+   "retrieval": {
+    "top1_count": 32,
+    "top1_frac": 1.0,
+    "mean_rank": 1.0
+   },
+   "connected_frac": 0.9375,
+   "mean_edges": 176.40625,
+   "band": "high",
+   "k": 8,
+   "seed": 2,
+   "samples_file": "adjacency_diffusion_planar_high_k8_seed2_samples.pt"
+  },
+  "none_k8_seed0": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.08215105769418217,
+    "mismatched_mean": 0.08453751838530973,
+    "difference_mean": -0.002386460691127565
+   },
+   "jaccard": {
+    "matched_mean": 0.04294888158351867,
+    "mismatched_mean": 0.0442537011733578,
+    "difference_mean": -0.0013048195898391277
+   },
+   "intersection": {
+    "matched_mean": 14.0625,
+    "mismatched_mean": 14.48991935483871,
+    "difference_mean": -0.42741935483870996
+   },
+   "retrieval": {
+    "top1_count": 2,
+    "top1_frac": 0.0625,
+    "mean_rank": 17.53125
+   },
+   "connected_frac": 0.90625,
+   "mean_edges": 164.875,
+   "band": "none",
+   "k": 8,
+   "seed": 0,
+   "samples_file": "adjacency_diffusion_planar_none_k8_samples.pt"
+  },
+  "none_k8_seed1": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.089615621928815,
+    "mismatched_mean": 0.08683339578426776,
+    "difference_mean": 0.002782226144547248
+   },
+   "jaccard": {
+    "matched_mean": 0.04699615088441029,
+    "mismatched_mean": 0.04550906263935031,
+    "difference_mean": 0.0014870882450599768
+   },
+   "intersection": {
+    "matched_mean": 15.71875,
+    "mismatched_mean": 15.244959677419354,
+    "difference_mean": 0.4737903225806459
+   },
+   "retrieval": {
+    "top1_count": 0,
+    "top1_frac": 0.0,
+    "mean_rank": 15.25
+   },
+   "connected_frac": 0.96875,
+   "mean_edges": 173.0625,
+   "band": "none",
+   "k": 8,
+   "seed": 1,
+   "samples_file": "adjacency_diffusion_planar_none_k8_seed1_samples.pt"
+  },
+  "none_k8_seed2": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.0835469838158601,
+    "mismatched_mean": 0.08413721857609362,
+    "difference_mean": -0.0005902347602335101
+   },
+   "jaccard": {
+    "matched_mean": 0.04369016265297608,
+    "mismatched_mean": 0.04404306043757968,
+    "difference_mean": -0.00035289778460360216
+   },
+   "intersection": {
+    "matched_mean": 14.21875,
+    "mismatched_mean": 14.31350806451613,
+    "difference_mean": -0.09475806451612989
+   },
+   "retrieval": {
+    "top1_count": 0,
+    "top1_frac": 0.0,
+    "mean_rank": 15.84375
+   },
+   "connected_frac": 0.875,
+   "mean_edges": 162.3125,
+   "band": "none",
+   "k": 8,
+   "seed": 2,
+   "samples_file": "adjacency_diffusion_planar_none_k8_seed2_samples.pt"
+  },
+  "random_k8_seed0": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.10539542526070429,
+    "mismatched_mean": 0.08326727290589353,
+    "difference_mean": 0.022128152354810762
+   },
+   "jaccard": {
+    "matched_mean": 0.05589558022850445,
+    "mismatched_mean": 0.04356970935867335,
+    "difference_mean": 0.012325870869831099
+   },
+   "intersection": {
+    "matched_mean": 17.90625,
+    "mismatched_mean": 14.143145161290322,
+    "difference_mean": 3.763104838709678
+   },
+   "retrieval": {
+    "top1_count": 7,
+    "top1_frac": 0.21875,
+    "mean_rank": 9.3125
+   },
+   "connected_frac": 0.90625,
+   "mean_edges": 161.6875,
+   "band": "random",
+   "k": 8,
+   "seed": 0,
+   "samples_file": "adjacency_diffusion_planar_random_k8_samples.pt"
+  },
+  "random_k8_seed1": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.11057800061287301,
+    "mismatched_mean": 0.08731903694665727,
+    "difference_mean": 0.023258963666215743
+   },
+   "jaccard": {
+    "matched_mean": 0.05875187599872783,
+    "mismatched_mean": 0.045775848359367446,
+    "difference_mean": 0.012976027639360385
+   },
+   "intersection": {
+    "matched_mean": 19.34375,
+    "mismatched_mean": 15.293346774193548,
+    "difference_mean": 4.050403225806452
+   },
+   "retrieval": {
+    "top1_count": 6,
+    "top1_frac": 0.1875,
+    "mean_rank": 9.03125
+   },
+   "connected_frac": 0.96875,
+   "mean_edges": 172.3125,
+   "band": "random",
+   "k": 8,
+   "seed": 1,
+   "samples_file": "adjacency_diffusion_planar_random_k8_seed1_samples.pt"
+  },
+  "random_k8_seed2": {
+   "n_samples": 32,
+   "chance_top1": 0.03125,
+   "f1": {
+    "matched_mean": 0.10858234706960226,
+    "mismatched_mean": 0.08638253723568869,
+    "difference_mean": 0.022199809833913578
+   },
+   "jaccard": {
+    "matched_mean": 0.05760230862156551,
+    "mismatched_mean": 0.04526994240483561,
+    "difference_mean": 0.012332366216729902
+   },
+   "intersection": {
+    "matched_mean": 18.90625,
+    "mismatched_mean": 15.059475806451612,
+    "difference_mean": 3.846774193548388
+   },
+   "retrieval": {
+    "top1_count": 6,
+    "top1_frac": 0.1875,
+    "mean_rank": 8.0625
+   },
+   "connected_frac": 0.9375,
+   "mean_edges": 170.625,
+   "band": "random",
+   "k": 8,
+   "seed": 2,
+   "samples_file": "adjacency_diffusion_planar_random_k8_seed2_samples.pt"
+  }
+ }
+}
