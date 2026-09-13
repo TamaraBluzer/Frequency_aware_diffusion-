@@ -81,20 +81,23 @@ Ordered by cost:
    deletion, verified to give 0 for a grid, 1 for K5 and K3,3, and 3 for K6), and
    `diagnose_validity` now reports it. It already separates arms the boolean cannot:
 
-   | Reconstruction | Planar | Median distance | Beyond 12 removals |
+   | Reconstruction | Planar | Distances measured | Beyond 12 removals |
    |---|---|---|---|
-   | high k=32 | 3.1% | **4** | 90.6% |
-   | high k=16 | 0.0% | -- | 100% |
-   | low k=32 | 0.0% | -- | 100% |
-   | real validation graphs | 100% | 0 | 0% |
+   | high k=32 | 3.1% | 0, 4, 11 (3 graphs) | 29/32 = 90.6% |
+   | high k=16 | 0.0% | none | 32/32 = 100% |
+   | low k=32 | 0.0% | none | 32/32 = 100% |
+   | every other Planar cell | 0.0% | none | 32/32 = 100% |
+   | every SBM cell | -- | none | 32/32 = 100% |
+   | real validation graphs | 100% | 0 (all 32) | 0% |
 
-   All three failing rows read 0% planar, but `high k=32` is measurably close while the others
-   are not. That is exactly the progress a 0/1 metric erases, and it is the point of the
-   measurement. The `low k=32` row is now recomputed under the corrected
-   orientation: 0.0% planar, and **all 32 of 32** reconstructions exceed the 12-removal cap, so
-   it has no defined median either. Only `high k=32` is measurably close to planar, and even its
-   median of 4 is taken over the 9.4% of graphs the greedy search terminated on -- a median over
-   the uncensored minority, not over the arm. Treat the column as a ranking, not a distance.
+   **This measurement did not work, and the table is the evidence.** At a cap of 12 the metric is
+   right-censored almost everywhere: 24 of Planar's 25 cells have no terminating graph at all, and
+   on SBM not one cell does. The only exception is `high k=32`, and its three survivors span 0 to
+   11 -- the published "median 4" was the middle of a three-element set, not a property of the arm.
+   So the metric does not separate arms the boolean cannot; it reports "more than 12" nearly
+   everywhere, which is the same one-bit answer the boolean gave. Doing this properly needs a much
+   larger cap and an exact solver, and until then the ranking claim should not be made.
+
 3. **Then, and only then, add structural features** to the continuous model and check whether
    that distance shrinks. Doing this first risks spending days on a fix whose own precedent in
    this repo is negative.

@@ -294,15 +294,22 @@ against.
 
 On the pre-fix numbers `shuffled` drifted above chance as k grew on SBM, where on Planar it
 stayed flat. The corrected values keep that shape -- 13.2--16.4% on SBM against a 9.4% chance
-rate, where Planar's `shuffled` sits at 8.3--8.8% -- and the mechanism is a property of the
-dataset, not of the orientation rule: SBM graphs vary from 55 to 172 nodes, size
-correlates strongly with density (r = -0.87), and donors differ from their targets by ~44 nodes
-on average, so cropping or padding a donor channel to the target's size leaks *size and density*
-even though it carries no information about which specific pairs are edges.
+rate, where Planar's `shuffled` sits at 8.3--8.8%. The orientation rule is not the cause, but
+neither is the dataset on its own -- **the elevation is a defect in the probe**, and it is larger
+than this document previously claimed.
 
-So on SBM the shuffled arm is expected to remain a weaker control than on Planar: still free of
-target-specific edge information, but not free of target-specific *scale*. Prefer `gaussian` as
-the strict floor on this dataset, and re-check the gap between them once the re-run lands.
+`condition_leakage.py` sizes its reconstruction from `pair_channel.shape[0]`, which is the
+*donor's* node count, while `fald/data/conditioning.py:95` crops or zero-pads the donor channel to
+the *target's*. The probe therefore scores a graph the model would never receive. SBM graphs vary
+from 55 to 172 nodes, so **all 32 of 32 SBM shuffled reconstructions have the wrong node count,
+off by up to 108** (a measured repro: target n=147, reconstruction n=98). Planar's fixed n=64
+makes it a no-op, which is why only SBM shows it.
+
+Size correlates strongly with density on SBM (r = -0.87), so a wrongly-sized reconstruction picks
+up *scale* information, which is what lifts the row. That is the probe leaking, not the condition.
+Treat the SBM `shuffled` row as carrying no signal at all rather than as a weak control, and use
+`gaussian` as the floor on that dataset. The defect is logged and deliberately left uncorrected so
+the `neg` regression against the pre-fix numbers stays bit-exact; fixing it is a separate change.
 
 ## What this does and does not establish
 

@@ -6,13 +6,18 @@ keeping "whichever orientation recovers more edges". It did not: the loop compar
 construction, so the strict `>` always kept the first iteration and every committed number was
 computed at orientation -1.0 alone.
 
-These tests prove two things:
+These tests prove three things:
 
-  * the selection now actually discriminates, because it scores against the true edge set, and
-  * the fix changed nothing else -- forcing orientation -1.0 reproduces the pre-fix numbers
-    bit-for-bit, on both datasets, for all 25 (band, k) rows.
+  * the selection now actually discriminates, because it scores against the true edge set,
+  * the shipped `band` rule fixes one sign per (band, k) cell by majority vote, agrees with
+    the per-graph `max` bound exactly wherever a cell is unanimous, and can never exceed it,
+  * and the fix changed nothing else -- forcing orientation -1.0 reproduces the pre-fix
+    numbers bit-for-bit, on both datasets, for all 25 (band, k) rows.
 
 The pre-fix numbers are frozen in `results/condition_leakage_*_single_orientation.json`.
+
+The last group covers the censored distance-to-planarity summary, whose whole job is to
+refuse to report a median that right-censoring has taken over.
 """
 
 from __future__ import annotations
@@ -138,6 +143,120 @@ def test_unknown_rule_is_rejected():
         probe.reconstruct_from_condition(channel, true, rule="whichever")
 
 
+def test_band_rule_is_not_resolvable_per_graph():
+    """`band` is a cell-level rule, so a single graph must refuse it rather than guess."""
+    channel, true = _positive_edge_channel()
+    with pytest.raises(ValueError, match="band"):
+        probe.reconstruct_from_condition(channel, true, rule="band")
+
+
+# --------------------------------------------------------------------------------------
+# The cell-level majority vote
+# --------------------------------------------------------------------------------------
+
+
+def _cell(pos_count: int, total: int) -> list:
+    """A cell of `total` reconstructions, `pos_count` of which prefer orientation +1."""
+    positive, true = _positive_edge_channel()
+    negative = -positive
+    built = []
+    for index in range(total):
+        channel = positive if index < pos_count else negative
+        built.append(probe.reconstruct_from_condition(channel, true, rule="max"))
+    return built
+
+
+def test_band_vote_follows_the_majority():
+    assert probe.band_orientation(_cell(7, 10)) == probe.POSITIVE
+    assert probe.band_orientation(_cell(3, 10)) == probe.NEGATIVE
+    assert probe.band_orientation(_cell(10, 10)) == probe.POSITIVE
+    assert probe.band_orientation(_cell(0, 10)) == probe.NEGATIVE
+
+
+def test_band_vote_breaks_ties_negative():
+    """A split cell keeps -1.0, matching the per-graph tie-break and the pre-fix behaviour."""
+    assert probe.band_orientation(_cell(5, 10)) == probe.NEGATIVE
+    assert probe.band_orientation([]) == probe.NEGATIVE
+
+
+@pytest.mark.parametrize("dataset,band,k", [("planar", "low", 8), ("planar", "high", 32)])
+def test_band_and_max_agree_on_unanimous_cells(dataset, band, k):
+    """low and high vote unanimously, so the cheap rule costs nothing against the bound."""
+    if not _dataset_available(dataset):
+        pytest.skip(f"raw {dataset} split not on disk; would require a download")
+
+    from fald.data.spectre import load_splits
+
+    graphs = load_splits(dataset)["val"]
+    row = probe.evaluate_band(graphs, band, k, seed=0, cache_tag=f"leakage_{dataset}_val")
+
+    assert row.orientation_pos_frac in (0.0, 1.0)
+    assert row.edge_recovery_band == pytest.approx(row.edge_recovery_max)
+    assert row.edge_recovery == pytest.approx(row.edge_recovery_band)
+
+
+def test_band_rule_never_exceeds_the_max_rule():
+    """The cell vote is a restriction of the per-graph argmax, so it cannot score higher."""
+    if not _dataset_available("planar"):
+        pytest.skip("raw planar split not on disk; would require a download")
+
+    from fald.data.spectre import load_splits
+
+    graphs = load_splits("planar")["val"]
+    for band in ("gaussian", "shuffled", "random"):
+        row = probe.evaluate_band(graphs, band, 8, seed=0, cache_tag="leakage_planar_val")
+        assert row.edge_recovery_band <= row.edge_recovery_max + 1e-12, band
+
+
+# --------------------------------------------------------------------------------------
+# Censored distance to planarity
+# --------------------------------------------------------------------------------------
+
+
+def test_planar_distance_median_ignores_nothing_when_uncensored():
+    summary = probe.summarize_planar_distance([0, 2, 4, 6, 8])
+    assert summary["n_censored"] == 0
+    assert summary["median"] == pytest.approx(4.0)
+    assert summary["measured_values"] == [0, 2, 4, 6, 8]
+
+
+def test_planar_distance_median_survives_minority_censoring():
+    """Censored values sort above every measured one, so a minority cannot move the median."""
+    summary = probe.summarize_planar_distance([1, 2, 3, None, None])
+    assert summary["n_censored"] == 2
+    assert summary["median"] == pytest.approx(3.0)
+
+
+def test_planar_distance_median_is_withheld_when_censoring_dominates():
+    """Half or more censored: the median is undefined and must not be quoted."""
+    for values in ([1, 2, None, None], [1, None, None, None], [None] * 4):
+        summary = probe.summarize_planar_distance(values)
+        assert summary["median"] is None, values
+        assert summary["censored_frac"] >= 0.5
+
+    # The exact shape of the defect this replaces: 29 of 32 censored, three survivors whose
+    # median (4) was being reported as the cell's median.
+    summary = probe.summarize_planar_distance([0, 4, 11] + [None] * 29)
+    assert summary["median"] is None
+    assert summary["n_censored"] == 29
+    assert summary["measured_values"] == [0, 4, 11]
+
+
+def test_planar_distance_euler_shortcut_agrees_with_the_greedy_search():
+    """The Euler early-out must return exactly what the greedy search would have returned."""
+    rb = probe._report_breakdown()
+
+    dense = nx.complete_graph(10)  # 45 edges against a 3n-6 = 24 bound: hopeless
+    assert probe.planar_distance(dense) is None
+    assert rb.distance_to_planar(dense) is None  # same answer, the slow way
+
+    grid = nx.grid_2d_graph(4, 4)
+    assert probe.planar_distance(nx.convert_node_labels_to_integers(grid)) == 0
+
+    near = nx.complete_graph(5)  # K5: one removal away from planar, under the Euler bound
+    assert probe.planar_distance(near) == rb.distance_to_planar(near) == 1
+
+
 # --------------------------------------------------------------------------------------
 # Scope of the fix, against the frozen pre-fix numbers
 # --------------------------------------------------------------------------------------
@@ -177,6 +296,31 @@ def test_committed_neg_column_matches_the_frozen_single_orientation_numbers(data
             assert new["edge_recovery"] == pytest.approx(new["edge_recovery_max"]), key
         # ...and the old headline must survive untouched as the neg column.
         assert new["edge_recovery_neg"] == pytest.approx(old["edge_recovery"], abs=1e-12), key
+
+
+@pytest.mark.parametrize("dataset", ["planar", "sbm"])
+def test_committed_results_carry_censored_planar_distances(dataset):
+    """The committed sweeps were run with --distance-to-planar; keep it that way.
+
+    The paper cites distance-to-planarity measured on these reconstructions, so the numbers
+    have to ship with the file rather than being recomputed ad hoc.
+    """
+    payload = json.loads((RESULTS / f"condition_leakage_{dataset}.json").read_text())
+    assert payload["distance_to_planar"] is True
+
+    for row in payload["rows"]:
+        key = (row["band"], row["k"])
+        distance = row["planar_distance"]
+        assert distance is not None, key
+        assert distance["n_graphs"] == row["n_graphs"], key
+        assert len(distance["per_graph"]) == row["n_graphs"], key
+        assert distance["n_censored"] == sum(1 for v in distance["per_graph"] if v is None), key
+        # The rule this summary exists to enforce: never quote a median that censoring owns.
+        if distance["censored_frac"] >= 0.5:
+            assert distance["median"] is None, key
+        # A graph counted planar must be zero removals from planar, and vice versa.
+        zeros = sum(1 for v in distance["per_graph"] if v == 0)
+        assert zeros == pytest.approx(row["planar_frac"] * row["n_graphs"]), key
 
 
 @pytest.mark.parametrize("dataset", ["planar", "sbm"])
