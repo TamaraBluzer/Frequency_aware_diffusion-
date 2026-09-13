@@ -16,7 +16,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 
-\title{Frequency or Information? A Controlled Study of Spectral\\Side-Channel Conditioning in Graph Diffusion}
+\title{Frequency or Information? A Diagnostic Study of Spectral\\Side-Channel Conditioning in Graph Diffusion}
 
 \author{
   Tamara Bluzer \quad Dan Shamia \quad Daniel Halperin \quad Itamar Kolodny \\
@@ -28,507 +28,388 @@
 \maketitle
 
 \begin{abstract}
-Spectral conditioning is standard in graph generation, but in existing generators the truncated
-spectrum \emph{is} the representation being generated, which ties ``which frequency band helps''
-to ``how much of the graph that representation already carries.'' We separate the two: we diffuse
-the full adjacency matrix and supply the truncated normalized-Laplacian spectrum only as a
-\emph{side channel}, so band and cutoff $k$ are the only quantities that vary across arms, and we add a model-free probe measuring how much of the target each condition gives away. This is an exploratory study --- one benchmark, one protocol --- and the headline arms are
-\emph{oracle-conditioned}: the spectra are taken from the real evaluation graphs, so those arms are
-a diagnostic upper bound rather than a generative model. Replacing the oracle with a learned
-spectral prior costs most of the benefit (Ratio $5.92 \to 159.72$ for \texttt{high} $k{=}32$,
-against an Erd\H{o}s--R\'enyi reference of $161.67$, with \texttt{low} $k{=}8$ failing its gate
-outright). On SPECTRE's Planar benchmark, a sweep of five conditioning arms over five cutoffs (one
-run per cell) shows no consistent monotonic trend across the tested cutoffs: 23 of 25 cells sit
-inside the spread of the unconditioned baseline, and the
-effect is confined to two isolated minima --- and the probe finds that both of them leak.
-\texttt{low} $k{=}8$ improves the MMD Ratio $2.3\times$ while recovering $72.7\%$ of the target's
-edges; \texttt{high} $k{=}32$ improves it $29.7\times$ while recovering $98.5\%$, near enough to a
-near-oracle regime to be read as one. In the one arm whose generated graphs survive, those graphs
-retrieve their own conditioning graph first in all 32 cases (edge $F_1$ $0.65$ against $0.09$ for
-mismatched pairs), so the advantage is at least partly reconstruction of the evaluation set. We
-therefore cannot attribute either minimum to frequency content. What we can still exclude is
-recovery as a \emph{predictor} of quality: it rises smoothly with $k$ in both bands while quality
-stays flat with two isolated spikes, so it does not locate the minima it now implicates.
+We test whether spectral input helps graph generation or mainly reveals the source graph.
+Our diffusion model generates adjacency matrices with Laplacian eigenpairs as extra input.
+On Planar, five conditioning choices and five cutoffs give two strong settings: low-frequency
+$k{=}8$ and high-frequency $k{=}32$ reduce MMD Ratio by factors of $2.3$ and $29.7$ across
+three seeds. We use \emph{oracle conditioning}: input from real validation graphs, not
+independently generated spectra. A simple reconstruction test with access to target details
+recovers $72.7\%$ and $98.5\%$ of the targets' edges. Across 12 saved pilot runs, low and high
+at $k{=}8$ each identify their source graph uniquely in all 96 samples. Recovery does not
+always track quality, but this does not rule out copying. Classification results remain
+inconclusive. Reconstruction should therefore be checked before attributing generation gains
+to frequency content.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
+We generate graph connections without node or edge attributes. An adjacency matrix records
+which nodes are connected. Diffusion models learn to remove noise and generate graphs starting
+from noise \citep{niu2020edpgnn,jo2022gdss,vignac2023digress}. Laplacian eigenpairs give extra
+structural information \citep{martinkus2022spectre,minello2025ggsd}. Each contains an eigenvalue
+and its eigenvector. The \emph{band} selects which eigenpairs we supply; the \emph{cutoff} $k$
+is how many.
 
-Topology-only graph generation learns a distribution over adjacency matrices with no node or edge
-features, so connectivity is the only thing modelled. Diffusion models now
-dominate the area \citep{niu2020edpgnn,jo2022gdss,vignac2023digress}, and a recurring idea is to
-hand the generator the graph's Laplacian spectrum. \citet{martinkus2022spectre} generate
-eigenpairs with a GAN and decode an adjacency matrix from them; \citet{minello2025ggsd} diffuse
-the spectrum itself; \citet{vignac2023digress} feed Laplacian eigenfeatures to their denoiser as
-fixed extra inputs; and \citet{zhu2025sdmg} argue, for representation learning, that the
-low-frequency part of the spectrum carries the useful global information.
+Motivated by SDMG \citep{zhu2025sdmg}, our proposal asked whether low-frequency input improves
+latent diffusion and whether adding more eigenpairs eventually hurts. We keep this question
+but generate adjacency directly, not a learned latent representation. The eigenpairs form a
+\emph{side channel}: extra input that guides denoising. Changing $k$ changes this input, not
+the graph representation. But different bands can reveal different amounts of the source
+graph. We ask: \emph{which inputs improve scores, and how much do the outputs reconstruct
+the graphs that supplied them?}
 
-These motivate an obvious question --- \emph{which} part of the spectrum helps generation? ---
-that existing designs cannot answer cleanly. When the truncated spectrum $(\lambda_k,
-U_k)$ is the representation the model generates and decodes from, $k$ controls the frequency
-content of the condition \emph{and}, simultaneously, how much of the target that representation
-determines. On $n{=}64$ planar graphs $U_k \mathrm{diag}(\lambda_k) U_k^\top$ at $k{=}32$ is close
-to the Laplacian itself, so a band that ``wins'' there may simply be inverting its own condition.
-No cited work reports a condition-information floor against which its frequency curve could be
-read.
-
-\paragraph{Research question.} \emph{Given a diffusion model whose state already carries the full
-graph, does an explicit spectral side channel improve generation, and does the incremental benefit
-depend on which frequency band and how many eigenpairs are supplied?}
-
-Phrasing it as a side channel makes the question falsifiable. Every arm diffuses the same object
-with the same architecture and budget and receives a condition tensor of the same shape; only the
-\emph{selection} of eigenpairs differs. A \texttt{none} arm gives the null, and three controls ---
-a random band, shape-matched Gaussian noise, and another graph's real low band --- separate
-frequency-specific information from conditioning capacity and from generic spectral statistics. We
-then add the measurement the literature is missing: a model-free probe that reconstructs edges
-from the condition alone.\footnote{Code, run artifacts and the figure-regeneration script:
-\url{https://github.com/TamaraBluzer/Frequency_aware_diffusion-}. Running
-\texttt{scripts/make\_paper\_figures.py} rebuilds the figure from \texttt{results/*.json}; it
-contains no hand-typed number.}
-
-Our contributions are that design; the central negative result that there is \textbf{no consistent
-monotonic trend across the tested cutoffs} (\S\ref{sec:sweep}); a leakage probe that
-\textbf{overturned our own headline claim} (\S\ref{sec:leakage}) --- an earlier version of this
-analysis reported the winning band as leak-free, and the corrected probe finds it the
-highest-leaking arm at its own cutoff, so the confound we claimed to have ruled out stands; a diagnosis of the universal $0\%$ validity (\S\ref{sec:validity}); and two
-further negative results (\S\S\ref{sec:e2e}--\ref{sec:downstream}). Throughout we report
-differences observed under one protocol on one benchmark; we locate an effect, we do not establish
-the mechanism behind it.
+We assess generation scores alongside edge recovery from the condition and overlap with
+source graphs. These checks reveal reconstruction, not a causal frequency effect.
+Code, results and analyzed samples accompany this paper.\footnote{\url{https://github.com/TamaraBluzer/Frequency_aware_diffusion-}.}
 
 \section{Related Work}
 \label{sec:related}
+\textbf{SPECTRE} \citep{martinkus2022spectre} generates eigenpairs with a GAN and decodes an
+adjacency matrix; we reuse its cutoff grid. \textbf{GGSD} \citep{minello2025ggsd} already
+compares diffusion representations from the smallest and largest eigenpairs. We instead use
+eigenpairs as extra input and measure reconstruction. \textbf{DiGress}
+\citep{vignac2023digress} supplies our backbone and benchmark conventions, but our main
+process is continuous, not discrete. \textbf{LGD} \citep{zhou2024lgd} motivated our latent
+approach. \textbf{DualDiff} \citep{xie2026dualdiff} combines node and cluster latents, rather
+than frequency-ordered inputs. \textbf{SDMG} \citep{zhu2025sdmg} studies representation learning;
+its findings need not transfer to generation.
 
-\paragraph{SPECTRE} \citep{martinkus2022spectre} is the closest methodological and evaluation
-reference: a GAN generates $(\lambda_k, U_k)$ on a Stiefel manifold, then a graph network builds
-the adjacency matrix from $U_k \mathrm{diag}(\lambda_k) U_k^\top$. It already sweeps $k \in \{2,4,8,16,32\}$ on Planar and SBM --- the grid we reuse --- but picks
-one $k$ per dataset heuristically and never reports the curve. We treat $k$ and the band as the object of
-study, replace its sign-canonicalization heuristic with a sign- and basis-invariant pair channel,
-and diffuse adjacency rather than decoding a generated spectrum. We also offset the band by the component count, where SPECTRE drops a fixed \texttt{eigvals[1:]},
-so a disconnected graph does not waste band on component indicators.
-
-\paragraph{GGSD} \citep{minello2025ggsd} already measures smallest- versus largest-eigenpair
-representations inside a diffusion generator, so frequency-band sensitivity is not itself novel.
-Our contribution is narrower: the incremental value of a side channel while the diffusion state
-still carries the full graph, with matched-capacity controls and a measured information floor.
-
-\paragraph{Others.} \textbf{DiGress} \citep{vignac2023digress} supplies our datasets, discrete
-diffusion process and evaluation suite; it feeds Laplacian eigenvalues to its denoiser as a fixed
-input augmentation, never as a variable to ablate, and we isolate exactly that variable.
-\textbf{LGD} \citep{zhou2024lgd} runs latent diffusion on molecules, never on Planar or SBM,
-conditioning on scalar properties rather than spectra; \S\ref{sec:model} says why we abandoned its
-design. \textbf{DualDiff} \citep{xie2026dualdiff} couples node- and cluster-level latents, but a
-cluster assignment collapses global structure into one number $K$, whereas an eigenpair-indexed
-condition exposes an ordered band --- which is what makes a sweep possible. \textbf{SDMG} \citep{zhu2025sdmg} shows low-frequency reconstruction beating
-full-spectrum reconstruction for \emph{representation} learning; we ask whether that transfers to
-\emph{generation}, and it does, but only in one narrow cell and for a reason its framing does not
-predict.
-
-\section{Method}
+\section{Method and Scope}
 \label{sec:method}
+\paragraph{Data and task.} We use SPECTRE's 200 Planar graphs: Delaunay triangulations on
+64 nodes. Following DiGress, seed 0 splits them into 128 training, 32 validation and 40 test
+graphs without duplicates. Training teaches the generator; validation selects its checkpoint.
+Each run generates 32 graphs. \textbf{We also score generation on validation}, not the untouched
+test set. Classification uses separate synthetic splits (\S\ref{sec:downstream}).
 
-\paragraph{Data.} SPECTRE's released Planar benchmark: 200 graphs at $n{=}64$, each a Delaunay
-triangulation of uniform random points, split 128/32/40 following DiGress's recipe, which we re-process ourselves since its
-\texttt{process()} appends every graph twice. Each arm generates as many graphs as the evaluation
-set holds (32).
-\textbf{Every number in this paper --- every Ratio, every validity fraction, every validation
-loss --- is scored on the validation split}, and that same split selected the checkpoints (since
-lost). No test-split number is reported anywhere. All results are therefore optimistic in the usual
-way, and none of them should be read as held-out performance.
+\paragraph{What each setting receives.} A \emph{condition} is extra input to the denoiser.
+For adjacency $A$ and degree matrix $D$, we compute the normalized Laplacian
+$L=I-D^{-1/2}AD^{-1/2}=U\Lambda U^\top$. Eigenvalues are sorted from smallest to largest;
+$n$ is the node count and $c$ counts zero eigenvalues. For $k\in\{2,4,8,16,32\}$, we compare:
 
-\paragraph{Spectral condition.} Let $L = I - D^{-1/2} A D^{-1/2} = U \Lambda U^\top$ with $0 =
-\lambda_1 \le \dots \le \lambda_n \le 2$, and let $t$ be the number of zero eigenvalues
-(equivalently, connected components). The arms take $k$ eigenpairs as \texttt{low} $=
-(\lambda_{t+1} \dots \lambda_{t+k})$, \texttt{high} $= (\lambda_{n-k+1} \dots \lambda_n)$,
-\texttt{random} $=$ $k$ indices drawn uniformly from $t{+}1 \dots n$, \texttt{gaussian} $=$
-i.i.d.\ $\mathcal{N}(0,1)$ tensors of identical shape, \texttt{shuffled} $=$ another graph's real
-low band under a derangement, and \texttt{none} $=$ an all-zero condition with a presence flag.
+\noindent\texttt{low} and \texttt{high}: the first $k$ nonzero eigenpairs (indices
+$c+1,\ldots,c+k$) or the last $k$ ($n-k+1,\ldots,n$). This tests which end of the spectrum
+helps: smoother patterns or faster variation between neighboring nodes.
 
-The condition enters the denoiser twice: as a pair channel $\big(U_k \mathrm{diag}(\lambda_k)
-U_k^\top\big)_{ij}$, rescaled per graph to unit RMS so \texttt{low} and \texttt{high} cannot differ in activation
-scale, and as the selected eigenvalues mapped from $[0,2]$ to $[-1,1]$, supplied globally with the
-timestep. The pair channel is invariant to eigenvector sign flips
-and to rotations within an exactly repeated eigenspace, sidestepping the ambiguity that motivates
-SignNet \citep{lim2023signnet} without depending on it.
+\noindent\texttt{random}: $k$ randomly selected nonzero eigenpairs of the \emph{same graph}.
+They still carry real structure, but do not favor either frequency band.
+
+\noindent\texttt{gaussian}: independent $\mathcal{N}(0,1)$ numbers replace the $k$ eigenvalues
+and $n\times k$ eigenvector entries. This tests extra input without target-edge information.
+It is noise in the hint, not the diffusion noise used by every model.
+
+\noindent\texttt{shuffled}: each graph receives a \emph{different graph's} low-frequency
+condition. We shuffle graph--condition assignments, not node order, with no self-matches.
+This tests whether real spectral structure helps without the correct target pairing.
+
+\noindent\texttt{none}: zero-valued condition inputs and an ``absent'' flag give no spectral
+hint. The model still receives the noisy adjacency, timestep and graph size. This is our
+baseline for measuring the benefit of conditioning.
+
+Conditions stay fixed while denoising. Training uses training-graph conditions; oracle
+sampling uses validation-graph conditions. To supply node-pair information, we form
+$P_k=U_k\operatorname{diag}(\lambda_k)U_k^\top$ and scale it to unit root-mean-square magnitude,
+so bands do not differ simply in input scale. Real eigenvalues are mapped to $[-1,1]$ and
+supplied globally. Gaussian substitutes use the same processing. $P_k$ is unchanged by sign
+flips or rotations within a fully selected repeated eigenspace, but not necessarily when
+that eigenspace is split \citep{lim2023signnet}. Parameter counts match at fixed $k$;
+larger $k$ widens the global input projection.
 
 \paragraph{Model.}
 \label{sec:model}
-The diffusion state is the centred adjacency matrix $x_0 = 2A - 1$. A cosine forward process
-\citep{nichol2021improved} adds symmetric Gaussian noise to each undirected pair, and a permutation-equivariant DiGress transformer predicts $x_0$ from $x_t$
-\citep{ho2020ddpm,vignac2023digress}, masking the diagonal and padding at every step. It has
-4 layers ($d_x{=}128$, $d_e{=}64$, $d_y{=}128$, 8 heads; 1.83M parameters), $T{=}100$ steps, and
-trains 200 epochs at batch 16, learning rate $3\!\times\!10^{-4}$, with the condition dropped at
-probability $0.1$ so guidance scale is available at sampling time \citep{ho2022cfg}. We began from an LGD-style autoencoder and abandoned it after measuring it: its per-pair latent is
-an expansion, not a compression (32{,}768 floats for 2{,}016 binary decisions), and hits F1
-$=1.000$ only by copying $A_{ij}$ down a private lane.
+We corrupt $x_0=2A-1$ with symmetric Gaussian noise under a cosine schedule and train the
+model to predict the clean matrix \citep{ho2020ddpm,nichol2021improved}. Sampling starts from
+noise; after denoising, positive values become edges. The transformer is permutation-equivariant:
+renaming nodes correspondingly renames its outputs. It has four layers,
+$(d_x,d_e,d_y)=(128,64,128)$, eight heads and 1.83M parameters at $k{=}8$.
+Training uses 200 epochs, batch 16, learning rate $3\times10^{-4}$ and 100 diffusion steps.
+Dropping conditions with probability 0.1 enables classifier-free guidance, which adjusts
+reliance on the hint during sampling \citep{ho2022cfg}. Self-loops and padding are excluded
+from the generated graph.
 
-\paragraph{Deviations from our project proposal.} Two, both deliberate, both worth stating because
-they change what the study measures. (i) The proposal specified \emph{latent} diffusion, an
-$\epsilon_\theta(z_t, t, C_k)$ denoiser over an LGD-style autoencoder's latent. We diffuse the
-adjacency matrix instead, for the reason just measured: the autoencoder we built is an expansion
-rather than a compression and reaches perfect reconstruction by copying $A_{ij}$, so any latent
-result would have been a result about that shortcut. Adjacency diffusion also sharpens the
-side-channel question, since the diffusion state then carries the full graph in every arm. The
-planned latent-transfer ablation, which would have tested whether the finding survives a genuinely
-linear-size latent, was not run. (ii) The proposal's downstream task was planar-versus-SBM
-classification; we replaced it with SBM community-count prediction (\S\ref{sec:downstream}),
-because planar-versus-SBM is separable by mean degree alone and so cannot distinguish one
-augmentation source from another.
+\paragraph{Changes from the proposal.} We kept the Planar comparisons and added controls and
+reconstruction checks. Our autoencoder used 32,768 floats for 2,016 edge decisions and
+reconstructed perfectly by copying edges into latent entries. We switched to adjacency
+diffusion; this does not invalidate latent diffusion generally. Latent transfer and SBM
+generation remain untested; SBM results cover recovery only. We replaced planar-versus-SBM
+classification with community-count prediction to reduce dataset-identity shortcuts. Its
+high-frequency inputs and unverified labels prevent testing the proposed low-frequency benefit.
 
-\paragraph{Evaluation.} We reimplement the GraphRNN/GRAN/SPECTRE suite
-\citep{you2018graphrnn,liao2019gran,martinkus2022spectre}: MMD \citep{gretton2012mmd} under a
-total-variation Gaussian kernel over degree histograms, clustering coefficients,
-normalized-Laplacian eigenvalues, 12 ab-spline wavelet scales, and 4-node orbit counts via ORCA
-\citep{hocevar2014orca}. Raw MMD is uninterpretable, so we report \textbf{Ratio}: each metric
-divided by the same metric between two real samples (the train-vs-test floor), averaged, so $1.0$
-means indistinguishable from real data at this sample size. Validity is \texttt{networkx} planarity \emph{and} connectivity \citep{hagberg2008networkx}. We calibrated the harness before
-training any model of ours: real-vs-real scores ${\approx}0$, the floor is $1.00$ by construction,
-and a \emph{per-graph density-matched} Erd\H{o}s--R\'enyi control \citep{erdos1959random} scores
-$3035\times$ it.
+\paragraph{How we measure quality.} Maximum mean discrepancy (MMD) \citep{gretton2012mmd}
+compares statistics across real and generated graph sets, rather than demanding exact copies.
+We measure degree (neighbor counts), clustering (triangles), Laplacian spectrum,
+12 ab-spline wavelet scales (multiscale structure) and four-node orbit counts (small patterns)
+\citep{you2018graphrnn,liao2019gran,hocevar2014orca}. Total-variation Gaussian kernel
+bandwidths are $1,0.1,1,1,30$, respectively. Each MMD is divided by its train--validation
+real-data reference; a $10^{-8}$ denominator floor avoids unstable division.
+\textbf{Ratio} averages these relative scores; lower is better. A score of 1 matches the
+reference but does not establish statistical indistinguishability. Separately, validity checks that a graph is
+connected and can be drawn without edge crossings (planar) \citep{hagberg2008networkx}.
 
-\paragraph{Protocol and seed coverage.} Seed counts differ by experiment and every table states
-its own. The $k{=}8$ comparison (Table~\ref{tab:k8}) is three seeds per arm at equal compute; the
-$5{\times}5$ sweep (\S\ref{sec:sweep}) is \emph{a single run per cell, at seed 0}; the re-run of the
-two minima (Table~\ref{tab:spikes}) is three seeds per arm; the downstream classifier
-(\S\ref{sec:downstream}) is five seeds per arm; the end-to-end and discrete-diffusion runs of
-\S\ref{sec:e2e} are single runs. Where three seeds exist we report a paired hierarchical bootstrap
-(1{,}000 resamples) over graphs and seeds. It resamples the two levels that actually vary inside a
-run, so its intervals describe how stable that particular comparison is; they are not a test over
-conditioning arms, cutoffs or datasets in general.
+Random seeds change training and sampling choices. The pilot and selected-cutoff repeats
+use three seeds per setting; the full sweep and discrete comparisons use one;
+classifiers use five. Sample standard deviations (SD, $\mathrm{ddof}=1$) show variation across
+seeds. Pilot bootstrap intervals resample both graphs and seeds.
 
-\paragraph{Leakage probe.} The
-\textbf{leakage probe} is model-free: it scores every node pair by $\big(U_k
-\mathrm{diag}(\lambda_k) U_k^\top\big)_{ij}$ --- exactly the tensor the denoiser receives --- and
-keeps the $m$ highest-scoring pairs, where $m$ is the target's true edge count, under whichever of
-the two global sign orientations scores better. Those true counts are deliberately privileged, but
-the probe is one decoder, not a bound over decoders: a \emph{high} score is conclusive --- the band
-demonstrably hands the answer over --- while a \emph{low} score bounds only this
-rank-and-threshold family, since a band could encode edges in a form the rule cannot read.
-Gaussian conditions score at the noise floor, and the full spectrum recovers $100.0\%$, as it must.
+\paragraph{How we check reconstruction.} To test how much the hint already reveals, our
+model-free \emph{probe} ranks entries of $P_k$ for distinct node pairs and keeps the target's
+true edge count. It tries highest-first and lowest-first rankings, choosing the one recovering
+more true edges. These target details make the test \emph{privileged}; it is not independent
+generation. Low recovery does not rule out a better decoder. Gaussian controls measure the
+rule's noise level, and the full spectrum gives complete recovery.
 
 \section{Results}
 \label{sec:results}
-
-Two labels apply to everything below. Every number is scored on the Planar \emph{validation} split,
-the same split that selected the checkpoints. And the arms of Tables~\ref{tab:k8}
-and~\ref{tab:spikes} and of Figure~\ref{fig:sweep} are \emph{oracle-conditioned}: each sample is
-conditioned on the spectrum of a real validation graph, which makes them a diagnostic upper bound
-rather than a generative model. \S\ref{sec:e2e} removes the oracle and reports what that costs.
-
-\subsection{Conditioning helps at $k{=}8$}
-Table~\ref{tab:k8} is the kill gate we set before anything downstream, and the first place numbers
-appear: three seeds per arm, oracle spectra, validation split. Low-frequency conditioning
-halves the Ratio and cuts validation loss by 60\%, while high and random conditioning land where
-\texttt{none} lands. Paired hierarchical bootstrap 95\% intervals for
-\texttt{low} minus \texttt{none}, \texttt{high} and \texttt{random} are $[-189.4, -152.1]$,
-$[-206.7, -152.4]$ and $[-195.1, -142.2]$, none of them containing zero. That resampling runs over
-graphs and seeds within this protocol, so the intervals say how stable this particular comparison
-is; they do not license a claim about conditioning in general. The model
-demonstrably uses the condition: under identical diffusion noise, adding it changes $12.95\%$ of
-edge decisions.
+\subsection{Initial comparison at \texorpdfstring{$k=8$}{k=8}}
+Low-band input roughly halves Ratio and reduces validation loss by 60\%
+(Table~\ref{tab:k8}). The saved hierarchical bootstrap analysis (1,000 resamples) gives 95\%
+intervals for low minus none, high and random of $[-189.4,-152.1]$, $[-206.7,-152.4]$ and
+$[-195.1,-142.2]$. With diffusion noise held fixed, adding the low condition changes 12.95\%
+of edge decisions.
 
 \begin{table}[t]
-\centering\footnotesize
+\centering\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccc}
 \toprule
 band & Ratio $\downarrow$ & val.\ loss $\downarrow$ & valid \\
 \midrule
-\texttt{none}   & 327.2 $\pm$ 8.8  & 0.132 $\pm$ 0.012 & 0\% \\
-\texttt{low}    & \textbf{158.0 $\pm$ 16.2} & \textbf{0.053 $\pm$ 0.004} & 0\% \\
-\texttt{high}   & 339.1 $\pm$ 9.2  & 0.094 $\pm$ 0.009 & 0\% \\
-\texttt{random} & 326.5 $\pm$ 11.8 & 0.128 $\pm$ 0.012 & 0\% \\
+\texttt{none} & 327.2 $\pm$ 8.8 & .132 $\pm$ .012 & 0\% \\
+\texttt{low} & \textbf{158.0 $\pm$ 16.2} & \textbf{.053 $\pm$ .004} & 0\% \\
+\texttt{high} & 339.1 $\pm$ 9.2 & .094 $\pm$ .009 & 0\% \\
+\texttt{random} & 326.5 $\pm$ 11.8 & .128 $\pm$ .012 & 0\% \\
 \bottomrule
 \end{tabular}
-\caption{Oracle conditioning at $k{=}8$ --- every sample conditioned on a real validation graph's
-own spectrum --- scored on the validation split that also selected the checkpoints. Three seeds per
-arm, mean $\pm$ std over seeds. Validation loss is metric-free, and it agrees with Ratio only on
-\texttt{low} being best: Ratio orders \texttt{low} $<$ \texttt{random} $<$ \texttt{none} $<$
-\texttt{high}, validation loss orders \texttt{low} $<$ \texttt{high} $<$ \texttt{random} $<$
-\texttt{none}. \texttt{high} is thus the worst arm on Ratio and the second best on loss.}
+\caption{Oracle Planar pilot at $k{=}8$: validation scores, three-seed mean $\pm$ sample SD.
+Five-metric Ratio and loss both favor low, but rank the other settings differently.}
 \label{tab:k8}
 \end{table}
 
-\subsection{The sweep: two isolated minima, no monotonic trend}
-\label{sec:sweep}
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrr}
+\toprule
+component Ratio $\downarrow$ & \texttt{none} & \texttt{low}, $k{=}8$ \\
+\midrule
+Degree & 138.3 $\pm$ 62.3 & 199.9 $\pm$ 11.1 \\
+Clustering & 17.9 $\pm$ 0.3 & 14.9 $\pm$ 0.0 \\
+Spectrum & 13.1 $\pm$ 0.7 & 7.3 $\pm$ 0.3 \\
+Wavelet & 356.4 $\pm$ 2.7 & 128.9 $\pm$ 1.6 \\
+Orbit & 1110.5 $\pm$ 21.9 & 438.8 $\pm$ 85.4 \\
+\bottomrule
+\end{tabular}
+\caption{Individual pilot metrics, three-seed mean $\pm$ sample SD. Low improves four metrics
+but worsens degree. The 0.0 SD is a rounded value.}
+\label{tab:components}
+\end{table}
 
+Most of the overall improvement comes from orbit counts, while degree gets worse
+(Table~\ref{tab:components}). A lower Ratio does not mean every structural metric improves.
+We have these individual metrics for the pilot, but not for the cutoff sweep.
+
+\subsection{Changing the cutoff}
+\label{sec:sweep}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/sweep.pdf}
-\caption{Five conditioning arms $\times$ five cutoffs on Planar, one run per cell at seed 0 on the
-validation split; stars mark three-seed
-means $\pm$ std for the two re-run cells, and colours are shared across panels. \textbf{(a)}
-Quality against $k$, unconditioned baseline dashed. \textbf{(b)} The same points against measured
-leakage.}
+\caption{Oracle Planar sweep, five-metric validation Ratio. Hollow markers show seed 0;
+stars show three-seed means and sample SD for repeated settings. The dashed baseline and gray
+band show the unconditioned mean and SD, not significance. (a) Quality versus cutoff; lines
+guide the eye. (b) Quality versus probe recovery.}
 \label{fig:sweep}
 \end{figure*}
 
-SDMG's intuition implies quality should vary smoothly with how much of which end of the spectrum
-is supplied. In this sweep it does not (Figure~\ref{fig:sweep}(a)). The 23 conditioned cells that
-are not one of the two minima span $270.5$ to $347.9$, with mean $327.2$ and a spread of $18.5$, and
-the unconditioned baseline of $335.7$ falls inside that range: the flat region simply is the
-baseline. The two minima fall far outside it --- $116.3$ for \texttt{low}, $k{=}8$ and $10.5$ for
-\texttt{high}, $k{=}32$, against a best-of-the-rest of $270.5$ --- while their neighbours in the same
-band show nothing: \texttt{low} is $316.4$ at $k{=}4$ and $270.5$ at $k{=}16$. Two cautions on how to read that spread. Each cell is a single run at seed 0, so the sweep
-is a description of 25 configurations rather than an estimate of any one of them; and the $18.5$ is
-the spread \emph{across different configurations}, not a sampling distribution, so we quote
-distances from it in Ratio points and never as standard deviations or significance.
-
-Both minima reproduce across three seeds (Table~\ref{tab:spikes}): \texttt{high}, $k{=}32$ is very
-stable (std $0.58$ on a mean of $11.11$) and the only arm in the sweep that produced a valid
-planar graph. \texttt{low}, $k{=}8$ is noisier but never approaches baseline; its seed-0
-draw of $116.27$ was its most favourable, so $141.91$ is the number to quote. The controls do
-their job: \texttt{gaussian} spans $322$--$333$ and \texttt{shuffled} --- another graph's real low
-band --- spans $329$--$342$, both flat on the baseline at every $k$. Neither \emph{having a
-condition} nor \emph{having real spectral statistics} suffices; the effect needs the matching
-graph's own spectrum at a particular band and cutoff, which is the cleanest evidence we have
-\emph{against} an extra-capacity explanation. It does not tell us what the matching spectrum
-supplies at those two cells, and we do not claim to know.
+More eigenpairs do not always help (Figure~\ref{fig:sweep}). In seed 0, low $k{=}8$ scores
+116.3 and high $k{=}32$ scores 10.5, versus 335.7 for none. Other scores range from 270.5
+to 347.9; smaller gains have not been repeated. Gaussian ranges from 322.1 to 332.5 and
+shuffled from 328.8 to 342.0. These ranges do not measure baseline variation across seeds.
 
 \begin{table}[t]
-\centering\footnotesize
-\setlength{\tabcolsep}{5pt}
+\centering\small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccc}
 \toprule
-arm & Ratio $\downarrow$ & vs.\ base & leak \\
+arm & Ratio $\downarrow$ & base/arm & valid \\
 \midrule
-\texttt{high} $k${=}32 & \textbf{11.1 $\pm$ 0.6} & 29.7$\times$ & 98.5\% \\
-\texttt{low} $k${=}8   & 141.9 $\pm$ 19.3 & 2.3$\times$ & 72.7\% \\
-\texttt{none}          & 330.1 $\pm$ 6.2 & --- & --- \\
+\texttt{none} & 330.1 $\pm$ 7.5 & --- & 0\% \\
+\texttt{low}, $k{=}8$ & 141.9 $\pm$ 23.6 & 2.3 & 0\% \\
+\texttt{high}, $k{=}32$ & \textbf{11.1 $\pm$ 0.7} & 29.7 & 4.2\% \\
 \bottomrule
 \end{tabular}
-\caption{Three-seed confirmation of the two minima, with edge recovery from the condition alone.
-Both reproduce, and both leak: \texttt{low} at $k{=}8$ recovers far above the $19.2\%$ a random
-band of the same size recovers at the same cutoff.}
+\caption{Repeated settings: three-seed mean $\pm$ sample SD, five-metric validation Ratio.
+Seed 0 also appears in the sweep. This is a separate set of runs from Table~\ref{tab:k8}:
+low-$k{=}8$ averages 141.9 here and 158.0 there. High has 1/32, 2/32 and 1/32 valid samples
+across seeds.}
 \label{tab:spikes}
 \end{table}
 
-\subsection{Both minima leak, and leakage does not locate them}
-\label{sec:leakage}
+Seeds 1 and 2 confirm gains, not optimal cutoffs.
 
+\subsection{How much of the target can be recovered?}
+\label{sec:leakage}
 \begin{table}[t]
-\centering\footnotesize
+\centering\small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lccccc}
+\begin{tabular}{lrrrrr}
 \toprule
-band & $k${=}2 & $k${=}4 & $k${=}8 & $k${=}16 & $k${=}32 \\
+band & $k{=}2$ & $4$ & $8$ & $16$ & $32$ \\
 \midrule
-\texttt{low}      & 48.1 & 54.0 & \textbf{72.7} & 78.7 & 47.9 \\
-\texttt{high}     & 21.8 & 31.4 & 49.3 & 76.7 & \textbf{98.5} \\
-\texttt{random}   & 14.8 & 15.6 & 19.2 & 26.3 & 43.6 \\
+\texttt{low} & 48.1 & 54.0 & \textbf{72.7} & 78.7 & 47.9 \\
+\texttt{high} & 21.8 & 31.4 & 49.3 & 76.7 & \textbf{98.5} \\
+\texttt{random} & 14.8 & 15.6 & 19.2 & 26.3 & 43.6 \\
 \texttt{gaussian} & 9.2 & 8.5 & 9.2 & 8.7 & 9.4 \\
 \texttt{shuffled} & 8.7 & 8.7 & 8.8 & 8.7 & 8.3 \\
 \bottomrule
 \end{tabular}
-\caption{Edge recovery (\%) from the condition alone, Planar validation split; chance is 8.8\%.
-Bold marks the two cells that minimise Ratio: both leak, and at $k{=}8$ the better-generating band
-is the higher-leaking one. \texttt{gaussian} and \texttt{shuffled} sit at the chance rate at every
-$k$, so the controls still do their job. The probe is privileged --- it is handed the true node and
-edge counts --- but it is a single decoder, so a high score is conclusive while a low score bounds
-only this rank-and-threshold family.}
+\caption{Edges recovered by the privileged probe (\%) on Planar validation graphs. Bold marks
+the selected generation settings. Random-edge chance is 8.8\%; Gaussian controls also account
+for choosing the better score orientation.}
 \label{tab:leakage}
 \end{table}
 
-An obvious objection to Table~\ref{tab:k8}: each sample is conditioned on a validation graph's
-spectrum and scored against those same graphs, so a band that hands over more of the target wins
-for reasons unrelated to frequency. Table~\ref{tab:leakage} measures it, and the measurement goes
-against us. At $k{=}8$ the ordering is \texttt{low} $72.7\% >$ \texttt{high} $49.3\% >$
-\texttt{random} $19.2\%$, with both noise controls at chance: the best-performing arm is also
-the highest-leaking one. An earlier version of this analysis reported \texttt{low} at $0.0\%$ and
-concluded that leakage was \emph{anti}-correlated with quality; that was an artifact of a defect in
-the probe (\S\ref{sec:discussion}), and we withdraw it. The objection stands as a live confound,
-and nothing we ran excludes it.
+Both selected conditions reveal many target edges (Table~\ref{tab:leakage}). At $k{=}8$,
+low has both the best generation score and the highest recovery. High $k{=}32$ allows
+98.5\% recovery, nearly reconstructing the target from its condition alone.
 
-What Table~\ref{tab:leakage} does exclude is leakage as a \emph{locator} of the two minima
-(Figure~\ref{fig:sweep}(b)): recovery climbs smoothly with $k$ in both bands, while quality is flat
-with two isolated spikes. Low-band recovery peaks not at the minimum but at $k{=}16$, which
-recovers more ($78.7\%$ against $72.7\%$) and generates $2.3\times$ worse ($270.5$ against
-$116.3$); in the high band, $76.7\%$ recovery at $k{=}16$ sits at Ratio $281.2$, inside the flat
-region, while $98.5\%$ at $k{=}32$ collapses to $10.5$. Recovery is therefore not sufficient to
-predict quality, and reading the $k{=}8$ minimum purely as leakage does not fit the shape of the
-data. That is the honest residual: a confound we can no longer exclude, which nevertheless fails to
-explain where the minima are. This defence is Planar-only: it rests on the non-monotone low-band
-peak at $k{=}16$, and we have no SBM generation sweep to pair against the SBM leakage grid.
+\paragraph{Reading the two axes.} Low-$k{=}8$ and high-$k{=}16$ have similar recovery
+(72.7\% and 76.7\%) but different seed-0 Ratios (116.3 and 281.2) in Figure~\ref{fig:sweep}(b).
+At $k{=}16$, low and high have both similar recovery (78.7\% and 76.7\%) and similar Ratios
+(270.5 and 281.2). These are single-seed scores, not the low-$k{=}8$ three-seed mean of
+141.9; neither $k{=}16$ setting was repeated. Recovery alone therefore does not consistently
+rank quality. Still, similar scores from one probe do not mean the inputs contain equal
+information. The first pair also differs in $k$ and graph-level input width. High-$k{=}32$
+shows how much the hint reveals; probe recovery does not measure copying by the generator.
 
-The two minima do still differ in degree. At $98.5\%$ recovery \texttt{high}, $k{=}32$ is close to
-being handed the target outright, so its $29.7\times$ improvement should not be reported as a
-frequency effect on any reading; \texttt{low}, $k{=}8$ leaks substantially less, but less is not
-none. What replicates on SBM is the leakage itself: both bands run far above the $9.4\%$ chance
-level, the low band rising monotonically in $k$ ($33.8\%$ at $k{=}2$ to $74.4\%$ at $k{=}32$)
-against \texttt{high}'s $23.0\%$ to $87.7\%$. So the confound is not an artifact of Planar's
-construction from 2D point sets --- but the Planar low band's non-monotone shape is not reproduced
-there, which is the second reason the paragraph above is a one-dataset argument.
+Low recovery falls to 47.9\% at $k{=}32$, while high recovery increases. A model need not
+use all the information that the probe can recover. On SBM, low recovery rises from 33.8\%
+to 74.4\% and high from 23.0\% to 87.7\%, above 9.4\% chance. This supports the recovery
+finding on another dataset, not the generation finding.
 
-\paragraph{The samples themselves reconstruct their conditioning graph.} The probe bounds what the
-condition \emph{carries}; it does not say what the model \emph{did} with it. For the one arm whose
-generated graphs we still hold --- \texttt{low}, $k{=}8$, seed 0 --- we can ask directly, by
-comparing each sample against the validation graph whose spectrum conditioned it. The answer is
-unambiguous. Matched pairs share edge $F_1 = 0.653$ against $0.088$ for mismatched pairs (Jaccard
-$0.485$ against $0.046$; $115.4$ of ${\sim}177$ edges in common against $15.6$), a gap of $0.565$
-with a bootstrap 95\% interval of $[0.556, 0.574]$ over the 32 graphs. Scoring every sample against
-every candidate retrieves its own conditioning graph first \emph{in all 32 cases}, mean rank $1.0$
-of $32$ against a chance rate of $3.1\%$. Each sample is individually identifiable as a partial copy
-of the specific held-out graph it was conditioned on, and that graph is in the reference set the
-sample is then scored against. This is direct evidence for the confound, not merely an inability to
-exclude it: the arm's MMD advantage is at least partly reconstruction of the evaluation data. One
-measurement points the other way --- a sample's own low band is no closer to its conditioning
-spectrum than to any other graph's (retrieval at $3.1\%$, exactly chance) --- so the copying is of
-edges, not of the conditioned quantity, and we cannot say by what route. We stress the coverage
-limit: this is 1 arm of 12, the remaining sample files are lost (\S\ref{sec:discussion}), and
-without them we cannot ask whether $k{=}16$, which recovers more yet generates worse, reconstructs
-less. That comparison is the one that would settle the section, and we cannot run it.
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/copying.pdf}
+\caption{Validation graph 0 and low-$k{=}8$/unconditioned sample 0, seed 0. Panels share the
+reference's node positions; this does not imply planarity. Solid green edges are shared; dashed
+gray edges are not. Labels show shared/generated counts and $F_1$; Table~\ref{tab:copying}
+covers all samples.}
+\label{fig:copying}
+\end{figure*}
 
-\subsection{Why validity is zero everywhere}
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccc}
+\toprule
+band & matched $F_1$ & mismatched $F_1$ & top-1 \\
+\midrule
+\texttt{none} & .085 $\pm$ .004 & .085 & 2/96 \\
+\texttt{low} & .617 $\pm$ .005 & .088 & 96/96 \\
+\texttt{high} & .337 $\pm$ .005 & .087 & 96/96 \\
+\texttt{random} & .108 $\pm$ .003 & .086 & 18/96 \\
+\bottomrule
+\end{tabular}
+\caption{Copying check, 12 saved $k{=}8$ runs. Matched: source graph, three-seed mean $\pm$
+sample SD; mismatched: other 31 graphs. Top-1 counts unique nearest matches; chance is 1/32.}
+\label{tab:copying}
+\end{table}
+
+Using stored node order, we compare sample $i$ with source graph $i$. Low and high identify
+their source uniquely in all 96 samples per band (Table~\ref{tab:copying}). None has almost
+equal matched and mismatched overlap; random has a smaller gap than low or high.
+Figure~\ref{fig:copying} shows one example.
+
+The snapshot records source hashes; older analysis used different samples. Original MMD
+reports lack sample hashes, preventing exact linkage. The copying analysis in
+Table~\ref{tab:copying} covers 12 runs at $k{=}8$.
+
+\subsection{Few generated graphs are valid}
 \label{sec:validity}
-Validity is \emph{connected AND planar}, so the universal $0\%$ cannot say which half failed. We
-separate them two ways. On the generated graphs themselves --- again only \texttt{low}, $k{=}8$,
-seed 0, the one saved arm --- $46.9\%$ are connected (bootstrap 95\% interval $[31.3\%, 62.5\%]$
-over 32 graphs, mean $1.66$ components) and $0.0\%$ are planar, so planarity is the binding
-constraint and connectivity is roughly a coin flip. Only $9.4\%$ exceed the $3n-6$ edge bound, so
-these are not merely too dense: they are the right size and the wrong shape. The probe's
-reconstructions separate the two halves the same way across the whole grid.
-Connectivity is easy, and cheap in information: by $k{=}32$ every reconstruction is connected in
-both bands, and even \texttt{shuffled} --- another graph's low band, at the noise floor --- is
-$71.9\%$ connected at $k{=}16$ and $100\%$ at $k{=}32$. Planarity essentially never is. Near-complete
-recovery does not buy it: \texttt{low} at $k{=}16$ recovers $78.7\%$ of the target's edges and
-\texttt{high} at $k{=}16$ recovers $76.7\%$, and neither yields a single planar graph. Only
-\texttt{high}, $k{=}32$ reaches planarity at all, at $3.1\%$.
+All 384 saved $k{=}8$ samples are nonplanar, although 67.7\% of low and 91.7\% of
+unconditioned samples are connected. High-$k{=}32$ repeat reports include 4/96 valid graphs.
+Separately, its probe gives 1/32 planar graphs despite 98.5\% recovery. Near-complete edge
+recovery does not guarantee planarity with this decoder; it does not follow that validity
+requires exact copying or that the dataset causes the failures.
 
-That arm explains why. At $98.5\%$ recovery the mean number of misplaced edges is $2.7$ of
-${\sim}177$ (max 6), and the fraction with \emph{zero} misplaced edges is $3.1\%$ --- the same $3.1\%$ that is planar,
-so every reconstruction with even one wrong edge is non-planar. This is a property of the target
-class, not of our model: a planar graph on $n{=}64$ with 177
-edges sits near the $3n-6 = 186$ bound, so it is nearly maximally triangulated and almost any
-added chord creates a $K_5$ or $K_{3,3}$ minor. Validity here is therefore close to a binary test of
-exactness rather than a graded quality measure, which is why an arm can improve Ratio $2.3\times$
-while pinned at zero. The usual prescription --- add structural features --- has negative
-precedent in our own runs: the discrete arm of \S\ref{sec:e2e} includes cycle counts and still
-reports $0\%$ validity at every scale. We therefore also report a greedy \emph{distance-to-planarity} heuristic --- repeatedly delete an
-edge of a reported Kuratowski subgraph, up to a cap of 12 deletions. It is an upper bound on the
-number of deletions a graph needs, not the minimum, and we do not compute the minimum. It is also
-heavily censored on these reconstructions --- $90.6\%$ of \texttt{high}, $k{=}32$ exceed the cap
---- so a median over the arm is not defined, and the medians we previously quoted were taken over
-the uncensored minority. We therefore quote none here and report the metric, with its censoring,
-in the repository.
+\subsection{Using more compute}
+\label{sec:budget}
+In a separate five-metric discrete model \citep{austin2021d3pm}, ten layers, 500 steps and
+1,000 epochs improve unconditioned Ratio from 306.78 to 39.60. Conditioning reaches 15.40,
+shrinking the gap from 276.7 to 24.2. Each setting has one validation run. Validity stays zero.
+This is not a DiGress reproduction; gains over a small baseline need not stay the same at
+a larger budget.
 
-\subsection{From oracle to end-to-end}
-\label{sec:e2e}
-Everything above is oracle-conditioned: the spectra come from held-out real graphs, making these
-arms a diagnostic upper bound rather than a generative model --- SPECTRE's ``real spectra''
-distinction. To close it we trained a diffusion prior over $(n, \lambda_k, U_k)$ with an orthogonality penalty
-and a QR retraction at the final step, then sampled end to end with no ground-truth input. Against an ER reference of $161.67$,
-oracle spectra give Ratio $5.92$ (\texttt{high}, $k{=}32$) and $74.86$ (\texttt{low}, $k{=}8$);
-end to end at guidance scale 1 these become $159.72$ and $295.64$, so the low arm fails its gate
-outright. Guidance is U-shaped over $\{0.5,1,1.5,2,3\}$ with an optimum at $1.5$, and even there a
-$24\times$ degradation from oracle remains, because small eigenvector errors compound through $U
-\mathrm{diag}(\lambda) U^\top$. These Ratios omit ORCA and are
-\emph{not} comparable to the tables above, which is why the ER reference is quoted beside them.
-Every configuration in this subsection is a single run, scored on the same validation split.
-
-A discrete-diffusion arm \citep{austin2021d3pm} sharpens the caveat. At a serious budget (10
-layers, 500 steps, 1{,}000 epochs) the \emph{unconditioned} baseline improves $7.7\times$ over the
-same process at pilot scale, from $306.78$ to $39.60$; conditioning still helps, to $15.40$
-($-61\%$), but the gap narrows from $276.7$ Ratio points to $24.2$. (Earlier drafts quoted
-${\sim}327$ here, which is the \emph{continuous} baseline of Table~\ref{tab:k8}, not this
-process's own pilot.) A headline from a small budget overstates conditioning's contribution, and validity stays $0\%$ at
-every scale.
-
-\subsection{Downstream utility: a null result, and a labelling flaw that limits it}
+\subsection{Does augmentation help classification?}
 \label{sec:downstream}
-The intended payoff of better topology generation is synthetic augmentation. We test it on a task
-deliberately aligned with the hypothesis --- predicting an SBM graph's community count (2--5),
-which is what low-frequency eigenvalues encode --- with 20/40/80 real training graphs, five seeds
-per arm, and one augmented graph added per real training graph. Diffusion augmentation never beats
-real-only training: at $n{=}20$ unconditioned augmentation scores $89.8\%$ against $94.8\%$
-real-only and conditioned augmentation $92.0\%$; at $n{=}80$ both stay below the $97.2\%$ baseline.
-Fresh samples from the \emph{true} SBM generator, our control arm, do help slightly ($98.8\%$ at
-$n{=}80$), so the classifier pipeline itself works.
+This secondary experiment asks whether generated graphs help a separate GNN predict SBM
+community count (2--5). ``Real'' graphs come from the SBM recipe. Augmentation adds one diffusion sample per real
+graph, using either no hint or high-$k{=}32$ hints. The three-layer dense Graph Isomorphism
+Network (GIN), hidden width 64, trains on 20/40/80 real graphs with five seeds. Communities
+have 20--40 nodes, $p_{\rm intra}=0.3$, $p_{\rm inter}=0.05$. We select models on 60 validation
+graphs and evaluate on 100 separate test graphs.
 
-\paragraph{What these arms can and cannot show.} Re-reading
-\texttt{scripts/downstream\_classifier.py} for this write-up, we found that the labelling procedure
-does not support the comparison we first drew from it. Generated graphs are never labelled from
-their own structure: each one inherits, positionally, the community count of the real template it
-was sampled alongside. For the conditioned arm that is at least defensible, since the template's
-spectrum is the condition. For the unconditioned arm it is not. That arm samples with
-\texttt{band}${=}$\texttt{none}, an all-zero condition, so the only thing it takes from its template
-is the node count; the generated graph is statistically independent of the label it is handed. At
-the 1:1 augmentation ratio used here, half of that arm's training set is graphs whose labels carry
-no information about them, and that alone is enough to produce the drop we observed. The result is
-a fact about label noise, not about unconditioned sample quality, and we withdraw the latter
-reading.
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rccc}
+\toprule
+\shortstack{Real training\\graphs} & Real only & + No hint & \shortstack{+ High\\$k{=}32$} \\
+\midrule
+20 & \textbf{94.8} & 89.8 & 92.0 \\
+40 & \textbf{97.0} & 94.2 & 94.0 \\
+80 & \textbf{97.2} & 96.2 & 95.0 \\
+\bottomrule
+\end{tabular}
+\caption{Mean test accuracy (\%), five seeds; higher is better. The last two columns add
+graphs from the unconditioned or high-frequency-conditioned generator. These are descriptive
+means, not significance tests.}
+\label{tab:downstream}
+\end{table}
 
-The conditioned arm is not a clean contrast either. It was run at \texttt{high}, $k{=}32$ --- the
-high-leakage extreme of Table~\ref{tab:leakage} --- and conditioned on the real training graphs
-themselves, so its samples are nearer to near-duplicates of the training set than to new
-augmentation, and its inherited labels are close to correct for exactly the reason that makes the
-samples redundant. The true-SBM control is the only arm whose labels are produced together with the
-graph. What survives is narrow: on this task, at these sizes, under this labelling, no diffusion arm
-beat real-only training, and the task is easy enough to begin with ($94.8\%$ from 20 real graphs)
-that there is little headroom for augmentation of any kind. A usable version of the experiment
-needs labels recovered from each generated graph --- an estimated block count, say --- rather than
-inherited from a template; we did not run that, so this section does not tell us whether the
-improvements of \S\ref{sec:sweep} can become downstream utility.
+\textbf{Neither diffusion method improves average accuracy over real-only training}
+(Table~\ref{tab:downstream}). High beats no hints at 20 real graphs, but not at 40 or 80.
+Adding fresh SBM-recipe graphs instead reaches 98.8\% at 80 real graphs, versus 97.2\%
+for real-only.
+
+This is a limited negative result, not evidence against augmentation in general. Generated
+graphs inherit template labels without checking their community count; label errors may hurt
+accuracy, but we did not measure their effect. Graph size is also an easy clue: a CPU
+nearest-class-mean classifier using only node count, fitted without tuning on the same
+training sets, scores 82.2/82.8/82.6\% on the same test set. Unconditioned samples still
+receive node count, so inherited labels need not be independent of them. Finally, we tested
+high-$k{=}32$, not low-frequency augmentation, and did not check SBM samples for duplication.
+The experiment does not tell us whether correctly labeled, low-frequency-generated graphs
+would help.
 
 \section{Discussion and Limitations}
 \label{sec:discussion}
+A strength of this study is combining generation scores with recovery and copying checks.
+This helps distinguish improved statistics from reconstruction, although separating frequency
+from target information still needs further controls.
 
-\paragraph{What the side channel buys.} Very little, almost everywhere: given a diffusion state that already carries the full graph, a
-truncated spectrum changed nothing we could measure in 23 of the 25 configurations we ran, and the
-two exceptions differ in kind. The observation we would defend is \texttt{low}, $k{=}8$ --- a
-$2.3\times$ Ratio improvement and 60\% lower validation loss under oracle conditioning on the
-validation split --- and we would defend it only as an observation, because the same condition
-gives a privileged probe $72.7\%$ of the target's edges, so a frequency effect and an information
-effect are not separated here. Coarse global structure the model cannot otherwise infer was our
-guess at what that condition supplies; leakage is now an equally live one, nothing we ran tests
-either, and the observation itself rests on three seeds at one cutoff on one dataset.
-\texttt{high}, $k{=}32$ is the better number and the weaker result: without the probe we would
-have reported a near-oracle regime as our headline. That a controlled study can invert its own
-top-line claim --- twice: once when the probe was added, and again when the probe was fixed --- is
-our best argument for the information floor none of the cited work reports.
+Generation is evaluated on Planar validation graphs. Selected settings have three seeds;
+most cutoffs have one. Generalization needs more seeds, datasets and untouched-test evaluation.
+The sweep supports aggregate comparisons; detailed component metrics are available for the pilot.
 
-\paragraph{Two caveats on our own reporting.} First, the sharpness is unexplained: both minima sit
-far below every other cell we measured, and both reproduce across three seeds, so neither is a
-one-off draw --- but a mechanism predicting \emph{which} cells drop is
-missing. Second, Ratio averages whichever metrics were available at run time, and orbit's tiny floor
-dominates any mean it enters: \texttt{none} is $321.21$ with ORCA and $125.25$ without --- a
-$2.56\times$ gap that explains an ER reference shift ($337.91$ vs.\ $161.67$) we had treated as
-unexplained. Decomposing the $k{=}8$ improvement, orbit alone contributes $84.0\%$ of the $-52.9\%$ aggregate
-while \emph{degree moves the wrong way}; a geometric mean puts it at $-34.8\%$. The low-band result survives --- it wins on four of five metrics and on validation loss --- but
-the aggregate overstates it.
+Our snapshot makes copying checks reproducible for conditioning graphs in fixed node order,
+not training graphs under arbitrary relabeling. Latent diffusion, cluster conditioning,
+combinatorial Laplacians and SignNet offer further comparisons. SBM results cover low- and
+high-band recovery, not a generation sweep; its shuffled control is excluded because graph
+sizes are not matched.
 
-\paragraph{Limitations.} (i) Every number is scored on the validation split, which also selected the
-checkpoints, so nothing reported here is held-out performance; seed coverage is uneven (three seeds
-for Tables~\ref{tab:k8} and~\ref{tab:spikes}, five for \S\ref{sec:downstream}, a single run for each
-cell of the sweep and for every configuration in \S\ref{sec:e2e}); and the quality
-sweep is Planar only --- on SBM we ran the leakage half, whose corrected pattern replicates, but
-not the generation half. (ii) The sweep's values were transcribed from a recycled Colab session's stdout, so
-per-metric breakdowns for those runs are lost (ORCA was verified present, so they are
-five-metric). (iii) Validity is $0\%$ throughout, so we compare distributional fidelity, not
-sample correctness, and our reduced discrete model is not a DiGress reproduction. (iv) SBM
-validity uses a spectral-clustering stand-in. (v) Four planned ablations --- cluster conditioning,
-a combinatorial Laplacian, SignNet, and a memorization audit --- were not run. (vi) The leakage
-probe itself was defective when this analysis was first written: its per-graph orientation
-selection never ran, so every previously reported figure was measured under a single fixed sign,
-and the \texttt{low} band was reported as leak-free at $0.0\%$ recovery where it in fact recovers
-$72.7\%$ at $k{=}8$. Table~\ref{tab:leakage} reports the corrected grid; the frozen pre-fix numbers
-are retained in the repository alongside it, as
-\texttt{condition\_leakage\_}\allowbreak\texttt{*\_single\_}\allowbreak\texttt{orientation.json}.
-A second, smaller defect is
-uncorrected: the probe does not crop a donor condition to the target's node count, which is a
-no-op on Planar's fixed $n{=}64$ but inflates the SBM \texttt{shuffled} row above chance, so that
-row carries no signal and we draw nothing from it. Together these make
-this an exploratory study: it reports differences observed under one protocol on one benchmark, and
-leaves the mechanism behind them open.
-
+\begin{samepage}
 \section{Conclusion}
-This is an exploratory study of one benchmark under one protocol, with oracle spectra for its
-headline arms, and what it can support is correspondingly narrow.
-Measured as a controlled side channel with matched-capacity controls and an information floor: no
-consistent monotonic trend across the tested cutoffs, two isolated minima that both leak, and an
-information floor that --- once it was fixed --- refuted our own claim to have ruled leakage out,
-while still failing to explain where those minima are.
+We studied spectral hints in graph diffusion and found repeatable improvements at low
+$k{=}8$ and high $k{=}32$ under oracle conditioning on Planar. Our main contribution is to
+pair generation scores with direct measurements of target recovery and source-graph
+similarity. These checks show why improvements should be read alongside reconstruction,
+rather than attributed to frequency alone. The code and sample snapshot make the copying
+analysis reusable. Together, the results and evaluation tools provide a practical starting
+point for testing spectral guidance across other graph families and model designs.
+\par
+\end{samepage}
 
-\bibliographystyle{acl_natbib}
+\clearpage
 \bibliography{custom}
 
 \end{document}

@@ -55,3 +55,6 @@ desktop.ini
 # Build copies of the ACL style files; the originals live in paper/acl-style/
 paper/acl.sty
 paper/acl_natbib.bst
+paper/*.log
+paper/*.blg
+_preview/

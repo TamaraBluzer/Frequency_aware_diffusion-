@@ -1,91 +1,135 @@
 # The paper
 
-`main.pdf` is the compiled ACL-format writeup: **5 pages of body, references on page 6**, which
-meets the 5-pages-excluding-references limit. `main.tex` is the source.
+`main.tex` is the source for **Frequency or Information? A Diagnostic Study of Spectral
+Side-Channel Conditioning in Graph Diffusion**. The local ACL build has **five body pages
+and one reference page**. Recheck after any text, figure, or template change.
 
-## Rebuilding it
+The manuscript focuses on generation with supplied spectral conditions. The learned-prior
+follow-up has been removed from the paper; its code and `results/stage8_results.json` remain
+in the repository as historical work, not evidence reported in the current manuscript.
+The separate larger-budget discrete comparison and the copying figure remain included.
+All reported generation Ratios now use the five-metric evaluation, including ORCA.
 
-The PDF in this directory was built with [Tectonic](https://tectonic-typesetting.github.io)
-against the official ACL style files vendored in `acl-style/`:
+## CPU-only verification and build
+
+Run from the repository root, using the project's Python environment:
 
 ```bash
-cd paper && cp acl-style/acl.sty acl-style/acl_natbib.bst . && tectonic -X compile main.tex
+python scripts/paper_cpu_checks.py
+python scripts/make_paper_figures.py
+python -m pytest tests/ -q
+tectonic -X compile paper/main.tex -Z search-path=paper/acl-style --keep-logs --reruns 3
+python scripts/check_paper_layout.py paper/main.pdf --max-body-pages 5
 ```
 
-Tectonic downloads the TeX packages it needs on first run, so nothing else has to be installed.
+The numerical audit uses the portable JSON snapshot by default: no checkpoint, local `.pt`
+file, GPU, ORCA executable, or diffusion training is needed. It also regenerates the lightweight
+node-count-only downstream classifier using the existing SBM data-generation code.
 
-## Building it on Overleaf instead
+On this Windows machine, the Python environment is
+`C:\Users\dhalperin\miniconda3\envs\fald`; invoke its `python.exe` or activate it first.
+Tectonic is under that environment's `Library/bin`. Set `CUDA_VISIBLE_DEVICES` to an empty
+string to hide GPUs from all verification processes, and use `MPLBACKEND=Agg`.
+The full test suite also exercises existing CPU model tests and conditionally uses local data.
 
-1. Open the ACL 2023 proceedings template:
-   <https://www.overleaf.com/latex/templates/acl-2023-proceedings-template/qjdgcrdwcnwp>
-   and click **Open as Template**.
-2. Upload `main.tex`, `custom.bib` and the `figures/` folder, replacing the template's own
-   `custom.bib`. Do not upload `acl-style/` — the template has its own copy.
-3. Set `main.tex` as the main document and compile.
+The local build tools are Tectonic 0.15.0, PyMuPDF 1.26.4 and pytest 8.4.2. The figure script
+uses the project's existing Matplotlib/NumPy/NetworkX/PyTorch stack. Tectonic downloads TeX
+resources on its first invocation. The vendored ACL style selects `acl_natbib` itself; do not
+add a duplicate `bibliographystyle` command. The explicit three reruns avoid Tectonic 0.15's
+spurious `.bbl` change-tracking rerun loop on this machine; the PDF checks still verify that
+references resolve.
 
-`main.tex` opens with
-`\IfFileExists{acl2023.sty}{\usepackage{acl2023}}{\usepackage{acl}}`, so it works with either
-style file without editing. For a review copy with line numbers, change that to
-`\usepackage[review]{acl2023}`.
+For visual inspection:
 
-**Check the page count after compiling there.** The 5-page result was measured against
-`acl-style/acl.sty`; the Overleaf template ships `acl2023.sty`, an older revision of the same
-style, and small differences in float or caption spacing could push a line or two over. The
-layout is tight by design — the body ends about two lines from the bottom of page 5.
+```bash
+python scripts/check_paper_layout.py paper/main.pdf --render-dir _preview --max-body-pages 5
+```
 
-## If it does run over
-
-Trim in this order. Each removes roughly a quarter page without losing a result:
-
-1. Cut the second half of the "Two caveats on our own reporting" paragraph (the per-metric
-   decomposition), keeping only the geometric-mean sentence.
-2. Drop the last sentence of §4.4 (distance-to-planarity) — it is a measurement refinement, not
-   a result.
-3. Shorten the "Others" paragraph of Related Work to one sentence per paper.
-
-Do **not** cut Table 3 (leakage) or Figure 1 — they carry the paper's central claim.
+This renders page PNGs and checks page count, unresolved references and text outside page
+boundaries. It supplements, rather than replaces, visual inspection of text and plots.
 
 ## Figures
 
-Figure 1 is regenerated from the committed run artifacts by
+`python scripts/make_paper_figures.py` writes vector PDFs:
+
+- `figures/sweep.pdf`: full-width cutoff and recovery plots. Bands have distinct colors and
+  markers; controls also have distinct line styles. Hollow points are single runs, stars are
+  selected three-seed means, and every uncertainty bar uses sample SD (`ddof=1`). The gray
+  baseline band is descriptive SD, not a confidence interval or an equivalence threshold.
+- `figures/copying.pdf`: full-width, fixed-index graph comparison. All three panels share one
+  layout computed from the reference graph. Shared edges are solid green, non-reference edges
+  dashed gray; all counts and F1 scores are computed from the snapshot.
+- `figures/downstream.pdf`: supplementary, not included in `main.tex`. It explicitly identifies
+  high-frequency conditioning, unverified synthetic labels, and sample-SD error bars. It is not
+  evidence of low-frequency augmentation utility.
+
+Figures read their inputs from JSON and fail on missing sources. No raw result aggregates are
+silently substituted. Sweep SDs and downstream SDs are recomputed from individual observations,
+not taken from the historical population-SD fields.
+
+## Source map
+
+| Paper evidence | Source |
+|---|---|
+| Table 1: pilot Ratio and validation loss | `results/adjacency_diffusion_planar_{band}_k8{suffix}.json`, four bands and three seeds |
+| Pilot bootstrap intervals | `results/frequency_pilot_planar_k8_summary.json` (archived within-protocol analysis) |
+| Condition sensitivity | `results/adjacency_diffusion_planar_low_k8_condition_sensitivity.json` |
+| Table 2: component Ratios | The twelve pilot reports; recomputed in `results/paper_cpu_checks.json` |
+| Figure 1: cutoff scores | `results/k_sweep_planar.json` |
+| Table 3 and Figure 1: selected repeats | Individual rows of `results/k_sweep_planar_seedcheck.json`; sample SD recomputed |
+| Table 4 and Figure 1: recovery | `results/condition_leakage_planar.json` |
+| SBM recovery | `results/condition_leakage_sbm.json`, excluding its defective shuffled control |
+| Table 5, Figure 2, pilot connectivity/planarity | `results/paper_sample_snapshot.json` and `results/paper_cpu_checks.json` |
+| Discrete budget comparison | `results/discrete_scaled_up_planar.json` (five metrics) |
+| Table 6: downstream GNN test accuracies and true-SBM control | `results/stage9_downstream.json` and the split protocol in `scripts/downstream_classifier.py` |
+| Node-count-only test accuracies | `results/paper_cpu_checks.json`, regenerated by `scripts/paper_cpu_checks.py` |
+
+`tests/test_paper_cpu_checks.py` verifies all six manuscript tables against their inputs,
+packed-graph round trips, tie-aware retrieval, reproducibility of the CPU audit and node-count
+baseline, and the sweep's sample-SD bars and readable axis settings.
+
+## Sample provenance and scope
+
+`results/paper_sample_snapshot.json` contains all 384 saved continuous pilot samples (four
+bands, three seeds, 32 samples per run) and the 32 ordered validation references. Each graph
+stores its upper-triangle adjacency as packed hexadecimal bits, with node count and encoding
+specified. Original `.pt` filenames and SHA-256 hashes are recorded. JSON is written with LF
+line endings so its recorded SHA-256 survives cross-platform Git checkout.
+
+The snapshot was created using:
 
 ```bash
-python scripts/make_paper_figures.py
+python scripts/paper_cpu_checks.py --capture-samples
 ```
 
-which writes `paper/figures/sweep.pdf` from `results/*.json`. It contains no hand-typed number,
-and the script raises rather than skipping if a source file is missing. It also still emits
-`figures/downstream.pdf`; that figure was cut from the paper for space (its numbers are stated in
-full in §4.6) and can be reinstated with a `\begin{figure}` block if you free up a column.
+Only run that option deliberately: it replaces the snapshot with the local sample files and
+requires the original Planar data. Ordinary reproduction must use the default snapshot mode.
+Raw sample and checkpoint files are unchanged.
 
-## Where every number comes from
+The earlier `results/bootstrap_low_k8.json` audit used a different machine's sample file with
+the same nominal run name. Its F1 and connectivity values differ. The paper now consistently
+uses the snapshot for sample-level claims, rather than mixing the two artifacts. The original
+MMD reports did not record sample hashes, so their exact relationship to this snapshot cannot
+be reconstructed retrospectively. The pilot and sweep-confirmation batches are also separate
+executions; their differing estimates are explicitly identified in the text.
 
-| Paper location | Source file |
-|---|---|
-| §3 calibration (floor, ER $3035\times$) | `results/eval_calibration_planar.json` |
-| Table 1 ($k{=}8$ bands, bootstrap CIs) | `results/frequency_pilot_planar_k8_summary.json` |
-| §4.1 condition sensitivity (12.95%) | `results/adjacency_diffusion_planar_low_k8_condition_sensitivity.json` |
-| Figure 1(a), flat-surface statistics | `results/k_sweep_planar.json` |
-| Table 2 (three-seed confirmation) | `results/k_sweep_planar_seedcheck.json` |
-| Table 3, Figure 1(b) (edge recovery) | `results/condition_leakage_planar.json` |
-| §4.3 SBM replication | `results/condition_leakage_sbm.json` |
-| §4.4 connected / planar split, misplaced edges | `results/condition_leakage_planar.json`, `docs/ZERO_VALIDITY.md` |
-| §4.5 oracle vs end-to-end, guidance sweep | `results/stage8_results.json` |
-| §4.5 discrete budgets (39.60 / 15.40) | `results/discrete_scaled_up_planar.json` |
-| §4.6 downstream accuracies | `results/stage9_downstream.json` |
-| §5 metric-set and per-metric audit | `results/report_breakdown.json`, `docs/METRIC_SCALES.md` |
+Historical result JSONs, including population SD aggregates, are retained unchanged. The new
+CPU report and figure code recompute sample SD. `docs/PROVENANCE.md`,
+`results/provenance_audit.json`, `scripts/audit_provenance.py`, `docs/REPORT.md`, and the
+`DanielNewWork` draft/patch files describe earlier manuscript versions; they are not the
+validation authority for the current manuscript. In particular, the historical provenance
+script compares a hard-coded old claim list, not the current LaTeX automatically.
 
-Longer writeups of the four reviewer-response investigations are in `docs/LEAKAGE.md`,
-`docs/METRIC_SCALES.md`, `docs/K_SWEEP.md` and `docs/ZERO_VALIDITY.md`. `docs/REPORT.md` is the
-internal stage-by-stage report; **it predates the leakage/k-sweep work and still leads with the
-older framing**, so the paper supersedes it.
+Remaining gaps are explicit: no untouched-test generation scores, no SBM generation sweep,
+no saved cutoff-sweep samples/checkpoints/component reports, and no clean downstream label
+validation. The downstream classifier uses separately generated test graphs, unlike the
+validation-only generation comparisons. These gaps are not repaired by the CPU audit.
 
-## Known gaps, stated in the paper
+## Overleaf
 
-- Every number is scored on the **validation** split, which also selected checkpoints. The
-  original checkpoints did not survive, so test numbers would require retraining.
-- The $k$-sweep's Ratio and validity values were transcribed from a recycled Colab session's
-  stdout; per-metric breakdowns for those runs are lost. ORCA was verified present beforehand, so
-  they are on the same five-metric scale as Table 1.
-- Stage 8's Ratios are four-metric (no ORCA) and are **not** comparable to the other tables. The
-  paper says so at the point of use.
+Use the ACL 2023 template:
+<https://www.overleaf.com/latex/templates/acl-2023-proceedings-template/qjdgcrdwcnwp>.
+Upload `main.tex`, `custom.bib` and the `figures/` folder; the template supplies its own style.
+The source accepts either `acl2023.sty` or `acl.sty`. Both template selection and float placement
+can change pagination, so check the five-body-page limit after compiling. Keep the figures at
+full width and shorten prose before reducing their labels or panels.
