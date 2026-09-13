@@ -13,8 +13,9 @@ python scripts/make_figures.py
 
 from the JSON files committed under `results/`. Sections marked **Caveat** carry numbers whose
 source JSON was recovered from Colab stdout rather than written by a run; they are committed and
-machine-read, but the underlying full reports are gone. Numbers marked **TODO** are awaiting a
-rerun and must not be quoted until it lands.
+machine-read, but the underlying full reports are gone. No **TODO** placeholders remain: the
+leakage grid has been regenerated under the per-band orientation rule and every cell in these
+docs is sourced. `docs/PROVENANCE.md` maps each paper claim to the file and key behind it.
 
 ---
 

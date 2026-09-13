@@ -85,15 +85,16 @@ Ordered by cost:
    |---|---|---|---|
    | high k=32 | 3.1% | **4** | 90.6% |
    | high k=16 | 0.0% | -- | 100% |
-   | low k=32 | 0.0% | TODO | TODO |
+   | low k=32 | 0.0% | -- | 100% |
    | real validation graphs | 100% | 0 | 0% |
 
    All three failing rows read 0% planar, but `high k=32` is measurably close while the others
    are not. That is exactly the progress a 0/1 metric erases, and it is the point of the
-   measurement. The `low k=32` planar fraction is confirmed at 0.0% under the corrected
-   orientation, but its distance columns were computed from the inverted reconstruction and have
-   not been recomputed -- rerun `scripts/bootstrap_samples.py --planarity-distance` to fill
-   them.
+   measurement. The `low k=32` row is now recomputed under the corrected
+   orientation: 0.0% planar, and **all 32 of 32** reconstructions exceed the 12-removal cap, so
+   it has no defined median either. Only `high k=32` is measurably close to planar, and even its
+   median of 4 is taken over the 9.4% of graphs the greedy search terminated on -- a median over
+   the uncensored minority, not over the arm. Treat the column as a ranking, not a distance.
 3. **Then, and only then, add structural features** to the continuous model and check whether
    that distance shrinks. Doing this first risks spending days on a fix whose own precedent in
    this repo is negative.

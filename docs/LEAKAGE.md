@@ -54,8 +54,9 @@ Two known-answer checks, both of which still pass under the corrected rule:
    100.0% on both Planar and SBM, as it must be -- `U diag(lambda) U^T` *is* `L_norm`.
    (`results/condition_leakage_full_spectrum_{planar,sbm}.json`.)
 2. **Pure noise scores flat.** The `gaussian` arm is flat across every k on both datasets, with
-   no trend in k. A probe hallucinating structure would not be. Its absolute level is TODO --
-   see [The chance line](#the-chance-line-is-being-re-derived).
+   no trend in k. A probe hallucinating structure would not be. Under the per-band rule it sits
+   at 8.5--9.4% on Planar against an analytic chance rate of 8.8%, and at 9.5--9.8% on SBM
+   against 9.4% -- i.e. on the floor, which is what closes the check.
 
 What neither check caught, and what no check in this project was looking for, is a band scoring
 reliably *below* the null. That is the next two sections.
@@ -135,15 +136,15 @@ Two things read directly off this table:
 
 ### The full corrected grid
 
-`results/condition_leakage_planar.json`, regenerated under the per-graph-max rule:
+`results/condition_leakage_planar.json`, regenerated under the per-band orientation rule (one sign per band/k by majority vote, so the true edge set never picks a sign per graph):
 
 | Band | k=2 | k=4 | k=8 | k=16 | k=32 |
 |---|---|---|---|---|---|
 | low | 48.1% | 54.0% | **72.7%** | **78.7%** | 47.9% |
 | high | 21.8% | 31.4% | 49.3% | 76.7% | **98.5%** |
-| random | 15.6% | 15.8% | 19.2% | 26.3% | 43.6% |
-| gaussian | TODO | TODO | TODO | TODO | TODO |
-| shuffled | TODO | TODO | TODO | TODO | TODO |
+| random | 14.8% | 15.6% | 19.2% | 26.3% | 43.6% |
+| gaussian | 9.2% | 8.5% | 9.2% | 8.7% | 9.4% |
+| shuffled | 8.7% | 8.7% | 8.8% | 8.7% | 8.3% |
 
 Three things change for the signal bands:
 
@@ -161,13 +162,16 @@ higher null, and it is also optimistic per graph: it lets a pure-noise condition
 of its two rankings happened to score better on *that* graph.
 
 The probe is being re-run with the orientation chosen **per band by majority vote** instead of
-per graph, which removes that per-graph optimism and should return the noise arms to the
-analytic chance rate. Until it lands:
+per graph, which removes that per-graph optimism and returns the noise arms to the analytic
+chance rate. That re-run has landed, and it resolved as follows:
 
-* **`gaussian` and `shuffled` are TODO.** Do not quote the per-graph-max values for them.
-* **The signal-band numbers above may tick down slightly**, since a single per-band orientation
-  cannot beat the per-graph maximum on any graph. The substantive picture -- `low` in the
-  48--79% range, `high` climbing to 98.5% -- does not depend on which of the two rules is used,
+* **The noise arms are back on the floor.** `gaussian` 8.5--9.4% and `shuffled` 8.3--8.8% on
+  Planar against 8.8% chance. The matched-capacity controls do their job again, and the tables
+  above quote the per-band values.
+* **The signal bands did not move at all.** A single per-band orientation cannot beat the
+  per-graph maximum, but `low` is unanimously positive and `high` unanimously negative at every
+  cutoff on both datasets, so the two rules select identically for them. The substantive picture
+  -- `low` in the 48--79% range, `high` climbing to 98.5% -- does not depend on which rule is used,
   because both bands score near-zero under their wrong orientation (see the diagnostic table
   above), so the majority vote is near-unanimous.
 
@@ -272,9 +276,9 @@ corrected grid (`results/condition_leakage_sbm.json`, 32 graphs, n = 55--172):
 |---|---|---|---|---|---|
 | low | 33.8% | 33.6% | 42.7% | 61.8% | 74.4% |
 | high | 23.0% | 35.5% | 51.8% | 70.6% | **87.7%** |
-| random | 15.7% | 16.7% | 18.3% | 22.4% | 30.3% |
-| gaussian | TODO | TODO | TODO | TODO | TODO |
-| shuffled | TODO | TODO | TODO | TODO | TODO |
+| random | 14.6% | 16.2% | 17.8% | 22.4% | 30.3% |
+| gaussian | 9.6% | 9.8% | 9.5% | 9.6% | 9.6% |
+| shuffled | 15.7% | 13.7% | 13.2% | 15.2% | 16.4% |
 
 SBM replicates the *corrected* Planar picture, not the old one: `low` is a high-leakage band
 here too, rising monotonically with k and actually **out-leaking `high` at k=2**. So the low
@@ -289,8 +293,9 @@ against.
 ### The SBM `shuffled` caveat still applies
 
 On the pre-fix numbers `shuffled` drifted above chance as k grew on SBM, where on Planar it
-stayed flat. The values are TODO pending the orientation re-run, but the mechanism is a property
-of the dataset and does not depend on them: SBM graphs vary from 55 to 172 nodes, size
+stayed flat. The corrected values keep that shape -- 13.2--16.4% on SBM against a 9.4% chance
+rate, where Planar's `shuffled` sits at 8.3--8.8% -- and the mechanism is a property of the
+dataset, not of the orientation rule: SBM graphs vary from 55 to 172 nodes, size
 correlates strongly with density (r = -0.87), and donors differ from their targets by ~44 nodes
 on average, so cropping or padding a donor channel to the target's size leaks *size and density*
 even though it carries no information about which specific pairs are edges.
