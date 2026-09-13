@@ -1,0 +1,116 @@
+diff --git a/paper/README.md b/paper/README.md
+index 1f6317e..c605c90 100644
+--- a/paper/README.md
++++ b/paper/README.md
+@@ -3,6 +3,11 @@
+ `main.pdf` is the compiled ACL-format writeup: **5 pages of body, references on page 6**, which
+ meets the 5-pages-excluding-references limit. `main.tex` is the source.
+ 
++The layout is now tight to the line — page 5 ends flush and page 6 opens on `References`. Adding
++Figure 1 and the §4 "Three run families" paragraph cost about 30 column-lines between them, and
++that was paid for by the trims listed under "Space" below. Anything added from here pushes the
++body onto page 6.
++
+ ## Rebuilding it
+ 
+ The PDF in this directory was built with [Tectonic](https://tectonic-typesetting.github.io)
+@@ -30,33 +35,60 @@ style file without editing. For a review copy with line numbers, change that to
+ 
+ **Check the page count after compiling there.** The 5-page result was measured against
+ `acl-style/acl.sty`; the Overleaf template ships `acl2023.sty`, an older revision of the same
+-style, and small differences in float or caption spacing could push a line or two over. The
+-layout is tight by design — the body ends about two lines from the bottom of page 5.
++style, and small differences in float or caption spacing could push a line or two over. Because
++the layout is now tight to the line rather than to the paragraph, assume it *will* move and be
++ready to apply one item from "Space" below.
++
++## Space
++
++Already applied, listed so nobody spends the effort twice:
+ 
+-## If it does run over
++1. The second half of "Two caveats on our own reporting" is compressed to one sentence.
++2. The distance-to-planarity sentence is cut from §4.4 — a measurement refinement, not a result.
++3. The "Others" paragraph of Related Work is one sentence per paper, and SPECTRE's
++   component-count-offset sentence is gone (§3 already defines the offset).
++4. The Conclusion is a run-in `\paragraph` at the end of §5 rather than its own section; §5 is
++   retitled "Discussion and Conclusion" accordingly.
++5. Figure 1 shows three of the five arms in a single column. `high` and `random` look like
++   `none`, and §4.1 quotes all four triangle counts in prose, so nothing numeric is lost.
++6. Limitations (iv) no longer names the four unrun ablations. They are in `WORKPLAN.md`.
+ 
+-Trim in this order. Each removes roughly a quarter page without losing a result:
++If it still runs over, cut in this order:
+ 
+-1. Cut the second half of the "Two caveats on our own reporting" paragraph (the per-metric
+-   decomposition), keeping only the geometric-mean sentence.
+-2. Drop the last sentence of §4.4 (distance-to-planarity) — it is a measurement refinement, not
+-   a result.
+-3. Shorten the "Others" paragraph of Related Work to one sentence per paper.
++7. The `\paragraph{Conclusion.}` sentence — redundant with the abstract and with §5's opening
++   paragraph, which is the better ending anyway. Frees about 5 lines.
++8. The discrete-diffusion paragraph of §4.5, which loses the "a small-budget headline overstates
++   conditioning's contribution" caveat — the most quotable warning in the paper.
+ 
+-Do **not** cut Table 3 (leakage) or Figure 1 — they carry the paper's central claim.
++Do **not** cut Table 3 (leakage) or Figure 2 — they carry the paper's central claim.
+ 
+ ## Figures
+ 
+-Figure 1 is regenerated from the committed run artifacts by
++Both figures are regenerated from the committed run artifacts by
+ 
+ ```bash
+ python scripts/make_paper_figures.py
+ ```
+ 
+-which writes `paper/figures/sweep.pdf` from `results/*.json`. It contains no hand-typed number,
+-and the script raises rather than skipping if a source file is missing. It also still emits
+-`figures/downstream.pdf`; that figure was cut from the paper for space (its numbers are stated in
+-full in §4.6) and can be reinstated with a `\begin{figure}` block if you free up a column.
++- `figures/samples.pdf` (Figure 1) — seed-0 samples of the `none` and `low` arms beside a real
++  validation graph, with edge and triangle counts computed at draw time. `high` and `random` are
++  scored and their triangle counts printed to stdout, but not drawn: see `SAMPLE_PANELS` in the
++  script, and §4.1 for where those two numbers are quoted.
++- `figures/sweep.pdf` (Figure 2) — the *k*-sweep in a frequency view and an information view.
++
++Neither contains a hand-typed number, and the script raises rather than skipping if a source file
++is missing. It also still emits `figures/downstream.pdf`; that figure is cut from the paper for
++space (its numbers are stated in full in §4.6) and can be reinstated with a `\begin{figure}` block
++if you free up a column.
++
++Figure 1 needs `torch` locally, only to `torch.load` the committed sample tensors and to
++reproduce the dataset split's `torch.randperm`. A CPU wheel is enough:
++`pip install torch --index-url https://download.pytorch.org/whl/cpu`.
++
++Two properties of Figure 1 are deliberate and stated in its caption, because they are what stop
++it being a cherry-picked panel: the sample shown is **index 0** of every arm, and all panels
++share one Kamada--Kawai layout, so the real graph is not drawn with the 2D coordinates its
++Delaunay triangulation actually came from.
+ 
+ ## Where every number comes from
+ 
+@@ -65,9 +97,10 @@ full in §4.6) and can be reinstated with a `\begin{figure}` block if you free u
+ | §3 calibration (floor, ER $3035\times$) | `results/eval_calibration_planar.json` |
+ | Table 1 ($k{=}8$ bands, bootstrap CIs) | `results/frequency_pilot_planar_k8_summary.json` |
+ | §4.1 condition sensitivity (12.95%) | `results/adjacency_diffusion_planar_low_k8_condition_sensitivity.json` |
+-| Figure 1(a), flat-surface statistics | `results/k_sweep_planar.json` |
++| Figure 1 (samples, Ratios, triangle counts) | `results/adjacency_diffusion_planar_{none,low,high,random}_k8{,_samples}.{json,pt}` |
++| Figure 2(a), flat-surface statistics | `results/k_sweep_planar.json` |
+ | Table 2 (three-seed confirmation) | `results/k_sweep_planar_seedcheck.json` |
+-| Table 3, Figure 1(b) (edge recovery) | `results/condition_leakage_planar.json` |
++| Table 3, Figure 2(b) (edge recovery) | `results/condition_leakage_planar.json` |
+ | §4.3 SBM replication | `results/condition_leakage_sbm.json` |
+ | §4.4 connected / planar split, misplaced edges | `results/condition_leakage_planar.json`, `docs/ZERO_VALIDITY.md` |
+ | §4.5 oracle vs end-to-end, guidance sweep | `results/stage8_results.json` |
+@@ -84,6 +117,10 @@ older framing**, so the paper supersedes it.
+ 
+ - Every number is scored on the **validation** split, which also selected checkpoints. The
+   original checkpoints did not survive, so test numbers would require retraining.
++- Results come from **three separate run families** — the $k{=}8$ pilot, the seed-0 sweep and the
++  seed confirmation — which is why `none` appears as 327.2, 335.7 and 330.1 and `low` $k{=}8$ as
++  158.0, 116.3 and 141.9. The opening paragraph of §4 states this and confirms the estimates agree
++  within one seed standard deviation; every comparison in the paper is drawn within one family.
+ - The $k$-sweep's Ratio and validity values were transcribed from a recycled Colab session's
+   stdout; per-metric breakdowns for those runs are lost. ORCA was verified present beforehand, so
+   they are on the same five-metric scale as Table 1.
