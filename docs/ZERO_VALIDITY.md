@@ -11,14 +11,24 @@ condition alone and therefore isolates the difficulty of the *target* from any m
 
 | Band | k | Edge recovery | Connected | Planar | Valid |
 |---|---|---|---|---|---|
-| low | 16 | 0.0% | 71.9% | 0.0% | 0.0% |
-| low | 32 | 0.6% | **100.0%** | 0.0% | 0.0% |
+| low | 16 | 78.7% | 93.8% | 0.0% | 0.0% |
+| low | 32 | 47.9% | **100.0%** | 0.0% | 0.0% |
 | high | 16 | 76.7% | **100.0%** | 0.0% | 0.0% |
 | high | 32 | 98.5% | **100.0%** | **3.1%** | 3.1% |
 
+**The `low` rows were corrected in September 2026.** `reconstruct_from_condition` never applied
+the per-graph orientation selection its docstring promised, so it always ranked with the sign
+that is correct for `high` and inverted for `low` -- see [LEAKAGE.md](LEAKAGE.md#the-bug). The
+low rows previously read 0.0% and 0.6% recovery; because the reconstructed *graph* is what the
+connectivity and planarity columns are computed from, those columns moved too (low k=16 was
+recorded at 71.9% connected). The `high` rows are unaffected: −1 was already the correct
+orientation for that band.
+
 Connectivity is reached easily -- by k=32 every reconstruction is connected, in both bands.
-Planarity essentially never is. **Validity is a planarity failure, not a connectivity
-failure**, and any explanation has to be about planarity specifically.
+Planarity essentially never is. **Validity is a planarity failure, not a connectivity failure**,
+and any explanation has to be about planarity specifically. The correction strengthens this: low
+k=32 now reaches 100% connectivity on only 47.9% edge recovery, so connectivity is cheap even
+when barely half the edges are right.
 
 ## Planarity is far more fragile than the near-perfect recovery suggests
 
@@ -75,11 +85,15 @@ Ordered by cost:
    |---|---|---|---|
    | high k=32 | 3.1% | **4** | 90.6% |
    | high k=16 | 0.0% | -- | 100% |
-   | low k=32 | 0.0% | -- | 100% |
+   | low k=32 | 0.0% | TODO | TODO |
    | real validation graphs | 100% | 0 | 0% |
 
-   All three failing rows read 0% planar, but `high k=32` is measurably close while the other
-   two are not. That is exactly the progress a 0/1 metric erases.
+   All three failing rows read 0% planar, but `high k=32` is measurably close while the others
+   are not. That is exactly the progress a 0/1 metric erases, and it is the point of the
+   measurement. The `low k=32` planar fraction is confirmed at 0.0% under the corrected
+   orientation, but its distance columns were computed from the inverted reconstruction and have
+   not been recomputed -- rerun `scripts/bootstrap_samples.py --planarity-distance` to fill
+   them.
 3. **Then, and only then, add structural features** to the continuous model and check whether
    that distance shrinks. Doing this first risks spending days on a fix whose own precedent in
    this repo is negative.

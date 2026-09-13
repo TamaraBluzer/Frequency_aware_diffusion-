@@ -82,6 +82,11 @@ does not get there.
 
 ## The leakage problem with the standard fix
 
+*(A different "leakage" from [LEAKAGE.md](LEAKAGE.md)'s. That document measures how much of the
+target graph the spectral **condition** gives away to the denoiser. This section is about
+spectral structure entering through the autoencoder's **input features**, which would
+contaminate the `none` arm itself.)*
+
 LGD's answer to the symmetry problem is positional encodings — their config sets
 `posenc_RRWP: enable: True, ksteps: 20`. RRWP is relative random-walk probabilities, i.e.
 powers of the normalized adjacency, which are **literally spectral filters**.

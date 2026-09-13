@@ -1,0 +1,1153 @@
+{
+  "experiment": "bootstrap_samples",
+  "description": "Within-run bootstrap and memorisation audit of one saved sample set. The intervals hold the trained model fixed and resample the graphs; they are not the across-seed std reported elsewhere and neither bounds the other.",
+  "samples_path": "/Users/tamarabluzer/Documents/GitHub/Frequency_aware_diffusion-/results/adjacency_diffusion_planar_low_k8_samples.pt",
+  "samples_path_committed_in_report": "C:\\Users\\dhalperin\\OneDrive - NVIDIA Corporation\\Documents\\University\\ML With Graphs\\FinalProject\\results\\adjacency_diffusion_planar_low_k8_samples.pt",
+  "dataset": "planar",
+  "eval_split": "val",
+  "band": "low",
+  "k": 8,
+  "seed": 0,
+  "n_generated": 32,
+  "n_reference": 32,
+  "n_train": 128,
+  "metrics": [
+    "degree",
+    "clustering",
+    "spectral",
+    "wavelet",
+    "orbit"
+  ],
+  "orca_available": true,
+  "resamples": 2000,
+  "reproduction": {
+    "committed_report": "/Users/tamarabluzer/Documents/GitHub/Frequency_aware_diffusion-/results/adjacency_diffusion_planar_low_k8.json",
+    "fields": {
+      "mmd/clustering": {
+        "committed": 0.3705957966025848,
+        "recomputed": 0.36885316712953253,
+        "abs_diff": 0.0017426294730522596,
+        "rel_diff": 0.004702237556463708
+      },
+      "mmd/degree": {
+        "committed": 0.04767042505920771,
+        "recomputed": 0.045378357306872896,
+        "abs_diff": 0.0022920677523348143,
+        "rel_diff": 0.04808154635684528
+      },
+      "mmd/orbit": {
+        "committed": 0.5554491301228079,
+        "recomputed": 0.3442288919270555,
+        "abs_diff": 0.21122023819575242,
+        "rel_diff": 0.3802692753322925
+      },
+      "mmd/spectral": {
+        "committed": 0.05375467168352799,
+        "recomputed": 0.05087953026058578,
+        "abs_diff": 0.0028751414229422068,
+        "rel_diff": 0.0534863544487657
+      },
+      "mmd/wavelet": {
+        "committed": 0.13636222082473992,
+        "recomputed": 0.14113050551818485,
+        "abs_diff": 0.004768284693444924,
+        "rel_diff": 0.034967784072491605
+      },
+      "n_generated": {
+        "committed": 32,
+        "recomputed": 32,
+        "abs_diff": 0,
+        "rel_diff": 0.0
+      },
+      "n_reference": {
+        "committed": 32,
+        "recomputed": 32,
+        "abs_diff": 0,
+        "rel_diff": 0.0
+      },
+      "ratio": {
+        "committed": 151.28849724348433,
+        "recomputed": 120.3255719154613,
+        "abs_diff": 30.962925328023033,
+        "rel_diff": 0.2046614639723149
+      },
+      "ratio/clustering": {
+        "committed": 14.978927046360207,
+        "recomputed": 14.908492573047281,
+        "abs_diff": 0.0704344733129254,
+        "rel_diff": 0.004702237556463738
+      },
+      "ratio/degree": {
+        "committed": 212.5099932407368,
+        "recomputed": 202.29218414943944,
+        "abs_diff": 10.217809091297369,
+        "rel_diff": 0.048081546356845306
+      },
+      "ratio/orbit": {
+        "committed": 390.9757549842942,
+        "recomputed": 242.2996879639207,
+        "abs_diff": 148.67606702037352,
+        "rel_diff": 0.38026927533229254
+      },
+      "ratio/spectral": {
+        "committed": 7.632139845271577,
+        "recomputed": 7.223924508304833,
+        "abs_diff": 0.4082153369667436,
+        "rel_diff": 0.05348635444876573
+      },
+      "ratio/wavelet": {
+        "committed": 130.3456711007589,
+        "recomputed": 134.9035703825942,
+        "abs_diff": 4.557899281835319,
+        "rel_diff": 0.0349677840724914
+      },
+      "vun/novel": {
+        "committed": 1.0,
+        "recomputed": 1.0,
+        "abs_diff": 0.0,
+        "rel_diff": 0.0
+      },
+      "vun/unique": {
+        "committed": 1.0,
+        "recomputed": 1.0,
+        "abs_diff": 0.0,
+        "rel_diff": 0.0
+      },
+      "vun/valid": {
+        "committed": 0.0,
+        "recomputed": 0.0,
+        "abs_diff": 0.0,
+        "rel_diff": 0.0
+      },
+      "vun/vun": {
+        "committed": 0.0,
+        "recomputed": 0.0,
+        "abs_diff": 0.0,
+        "rel_diff": 0.0
+      }
+    },
+    "density": {
+      "committed_mean": 0.08756510416666666,
+      "recomputed_mean": 0.08723958333333334,
+      "committed_std": 0.0044087993458398565,
+      "recomputed_std": 0.005324765636569218,
+      "same_graphs": false
+    },
+    "max_relative_difference": 0.38026927533229254,
+    "reproduced": false,
+    "committed_arm_ratios": {
+      "adjacency_diffusion_planar_low_k8": 151.28849724348433,
+      "adjacency_diffusion_planar_low_k8_seed1": 146.16699097369775,
+      "adjacency_diffusion_planar_low_k8_seed2": 176.44179106173948
+    },
+    "recomputed_within_committed_seed_range": false,
+    "reference_side_reproduces_via_er_control": false,
+    "mismatch_localised_to": null
+  },
+  "kernel_self_check": {
+    "degree": {
+      "kernel_matrix_mmd": 0.04537835730687734,
+      "compute_mmd": 0.045378357306872896,
+      "abs_diff": 4.440892098500626e-15
+    },
+    "clustering": {
+      "kernel_matrix_mmd": 0.3688531671295315,
+      "compute_mmd": 0.36885316712953253,
+      "abs_diff": 1.0547118733938987e-15
+    },
+    "spectral": {
+      "kernel_matrix_mmd": 0.05087953026058378,
+      "compute_mmd": 0.05087953026058578,
+      "abs_diff": 1.9984014443252818e-15
+    },
+    "wavelet": {
+      "kernel_matrix_mmd": 0.14113050551817774,
+      "compute_mmd": 0.14113050551818485,
+      "abs_diff": 7.105427357601002e-15
+    },
+    "orbit": {
+      "kernel_matrix_mmd": 0.3442288919270533,
+      "compute_mmd": 0.3442288919270555,
+      "abs_diff": 2.220446049250313e-15
+    }
+  },
+  "recomputed_evaluation": {
+    "mmd/degree": 0.045378357306872896,
+    "mmd/clustering": 0.36885316712953253,
+    "mmd/spectral": 0.05087953026058578,
+    "mmd/wavelet": 0.14113050551818485,
+    "mmd/orbit": 0.3442288919270555,
+    "vun/valid": 0.0,
+    "vun/unique": 1.0,
+    "vun/novel": 1.0,
+    "vun/vun": 0.0,
+    "ratio/degree": 202.29218414943944,
+    "ratio/clustering": 14.908492573047281,
+    "ratio/spectral": 7.223924508304833,
+    "ratio/wavelet": 134.9035703825942,
+    "ratio/orbit": 242.2996879639207,
+    "ratio": 120.3255719154613,
+    "n_generated": 32,
+    "n_reference": 32
+  },
+  "reference_floor_mmd": {
+    "degree": 0.00022432086290269382,
+    "clustering": 0.024741144372729784,
+    "spectral": 0.0070431979462262095,
+    "wavelet": 0.0010461584161036708,
+    "orbit": 0.001420674103296049
+  },
+  "bootstrap": {
+    "generated_only": {
+      "mmd/degree": {
+        "point": 0.045378357306872896,
+        "bootstrap_mean": 0.04618060073268433,
+        "bootstrap_bias": 0.0008022434258114358,
+        "bootstrap_std": 0.00493421710695091,
+        "ci95_low": 0.036837300157940664,
+        "ci95_high": 0.056149093231627645,
+        "ci95_basic_low": 0.03460762138211815,
+        "ci95_basic_high": 0.05391941445580513,
+        "median": 0.04596905884760716,
+        "ci95_width_over_point": 0.425572766838831,
+        "relative_bias": 0.017678987813204292
+      },
+      "mmd/clustering": {
+        "point": 0.36885316712953253,
+        "bootstrap_mean": 0.3989551423383206,
+        "bootstrap_bias": 0.030101975208788045,
+        "bootstrap_std": 0.007508537040221619,
+        "ci95_low": 0.3864243852852137,
+        "ci95_high": 0.41580875214535956,
+        "ci95_basic_low": 0.3218975821137055,
+        "ci95_basic_high": 0.35128194897385134,
+        "median": 0.3981939414835153,
+        "ci95_width_over_point": 0.07966413055042779,
+        "relative_bias": 0.08160964278291513
+      },
+      "mmd/spectral": {
+        "point": 0.05087953026058578,
+        "bootstrap_mean": 0.055649453366168014,
+        "bootstrap_bias": 0.004769923105582233,
+        "bootstrap_std": 0.0027533171461095202,
+        "ci95_low": 0.050544352226640825,
+        "ci95_high": 0.06142116566332629,
+        "ci95_basic_low": 0.04033789485784527,
+        "ci95_basic_high": 0.05121470829453074,
+        "median": 0.05551650958260845,
+        "ci95_width_over_point": 0.21377582263394582,
+        "relative_bias": 0.09374935423248769
+      },
+      "mmd/wavelet": {
+        "point": 0.14113050551818485,
+        "bootstrap_mean": 0.1428691217802188,
+        "bootstrap_bias": 0.0017386162620339485,
+        "bootstrap_std": 0.003795113752739947,
+        "ci95_low": 0.13592131557135242,
+        "ci95_high": 0.1507823555079052,
+        "ci95_basic_low": 0.1314786555284645,
+        "ci95_basic_high": 0.14633969546501727,
+        "median": 0.1426899880218938,
+        "ci95_width_over_point": 0.10529998374191261,
+        "relative_bias": 0.012319209483805934
+      },
+      "mmd/orbit": {
+        "point": 0.3442288919270555,
+        "bootstrap_mean": 0.35465905344582127,
+        "bootstrap_bias": 0.010430161518765746,
+        "bootstrap_std": 0.0659657863744098,
+        "ci95_low": 0.24104510734130816,
+        "ci95_high": 0.4947268854264756,
+        "ci95_basic_low": 0.19373089842763547,
+        "ci95_basic_high": 0.4474126765128029,
+        "median": 0.3486678351760578,
+        "ci95_width_over_point": 0.7369566705020344,
+        "relative_bias": 0.030300075802399438
+      },
+      "ratio/degree": {
+        "point": 202.29218414943944,
+        "bootstrap_mean": 205.86850522524892,
+        "bootstrap_bias": 3.5763210758094885,
+        "bootstrap_std": 21.996246998707907,
+        "ci95_low": 164.21700453718321,
+        "ci95_high": 250.30704906285908,
+        "ci95_basic_low": 154.2773192360198,
+        "ci95_basic_high": 240.36736376169566,
+        "median": 204.92547263185634,
+        "ci95_width_over_point": 0.42557276687505885,
+        "relative_bias": 0.017678987899836757
+      },
+      "ratio/clustering": {
+        "point": 14.908492573047281,
+        "bootstrap_mean": 16.125169326374966,
+        "bootstrap_bias": 1.2166767533276843,
+        "bootstrap_std": 0.3034838214073128,
+        "ci95_low": 15.618694893974581,
+        "ci95_high": 16.806366992624607,
+        "ci95_basic_low": 13.010618153469956,
+        "ci95_basic_high": 14.198290252119982,
+        "median": 16.094402727896814,
+        "ci95_width_over_point": 0.07966413055047503,
+        "relative_bias": 0.08160964278355587
+      },
+      "ratio/spectral": {
+        "point": 7.223924508304833,
+        "bootstrap_mean": 7.901162765948775,
+        "bootstrap_bias": 0.6772382576439417,
+        "bootstrap_std": 0.3909186092906789,
+        "ci95_low": 7.1763356095232425,
+        "ci95_high": 8.72063601392501,
+        "ci95_basic_low": 5.727213002684657,
+        "ci95_basic_high": 7.271513407086424,
+        "median": 7.882287280043935,
+        "ci95_width_over_point": 0.21377582263302924,
+        "relative_bias": 0.09374935422779807
+      },
+      "ratio/wavelet": {
+        "point": 134.9035703825942,
+        "bootstrap_mean": 136.5654757220768,
+        "bootstrap_bias": 1.661905339482587,
+        "bootstrap_std": 3.6276664166776356,
+        "ci95_low": 129.92421938679774,
+        "ci95_high": 144.12956315437674,
+        "ci95_basic_low": 125.67757761081168,
+        "ci95_basic_high": 139.88292137839068,
+        "median": 136.39424567167327,
+        "ci95_width_over_point": 0.10529998373869447,
+        "relative_bias": 0.012319209452865692
+      },
+      "ratio/orbit": {
+        "point": 242.2996879639207,
+        "bootstrap_mean": 249.64138687503268,
+        "bootstrap_bias": 7.34169891111199,
+        "bootstrap_std": 46.432736558705855,
+        "ci95_low": 169.66952996539754,
+        "ci95_high": 348.23390127018894,
+        "ci95_basic_low": 136.36547465765244,
+        "ci95_basic_high": 314.92984596244384,
+        "median": 245.42422105506228,
+        "ci95_width_over_point": 0.7369566704988092,
+        "relative_bias": 0.030300075797890406
+      },
+      "ratio": {
+        "point": 120.3255719154613,
+        "bootstrap_mean": 123.22033998293644,
+        "bootstrap_bias": 2.894768067475141,
+        "bootstrap_std": 11.432816516364175,
+        "ci95_low": 103.89803877775469,
+        "ci95_high": 147.54150209476362,
+        "ci95_basic_low": 93.10964173615898,
+        "ci95_basic_high": 136.7531050531679,
+        "median": 122.46197905528362,
+        "ci95_width_over_point": 0.3627114554474927,
+        "relative_bias": 0.02405779603947327
+      },
+      "floor/degree": {
+        "point": 0.00022432086288359798,
+        "bootstrap_mean": 0.00022432086288359798,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0,
+        "ci95_low": 0.00022432086288359798,
+        "ci95_high": 0.00022432086288359798,
+        "ci95_basic_low": 0.00022432086288359798,
+        "ci95_basic_high": 0.00022432086288359798,
+        "median": 0.00022432086288359798,
+        "ci95_width_over_point": 0.0,
+        "relative_bias": 0.0
+      },
+      "floor/clustering": {
+        "point": 0.024741144372715126,
+        "bootstrap_mean": 0.024741144372715126,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 3.470314639087839e-18,
+        "ci95_low": 0.02474114437271513,
+        "ci95_high": 0.02474114437271513,
+        "ci95_basic_low": 0.024741144372715122,
+        "ci95_basic_high": 0.024741144372715122,
+        "median": 0.02474114437271513,
+        "ci95_width_over_point": 0.0,
+        "relative_bias": 0.0
+      },
+      "floor/spectral": {
+        "point": 0.007043197946256408,
+        "bootstrap_mean": 0.007043197946256408,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0,
+        "ci95_low": 0.007043197946256408,
+        "ci95_high": 0.007043197946256408,
+        "ci95_basic_low": 0.007043197946256408,
+        "ci95_basic_high": 0.007043197946256408,
+        "median": 0.007043197946256408,
+        "ci95_width_over_point": 0.0,
+        "relative_bias": 0.0
+      },
+      "floor/wavelet": {
+        "point": 0.0010461584161356452,
+        "bootstrap_mean": 0.0010461584161356452,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0,
+        "ci95_low": 0.0010461584161356452,
+        "ci95_high": 0.0010461584161356452,
+        "ci95_basic_low": 0.0010461584161356452,
+        "ci95_basic_high": 0.0010461584161356452,
+        "median": 0.0010461584161356452,
+        "ci95_width_over_point": 0.0,
+        "relative_bias": 0.0
+      },
+      "floor/orbit": {
+        "point": 0.0014206741033022663,
+        "bootstrap_mean": 0.0014206741033022663,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0,
+        "ci95_low": 0.0014206741033022663,
+        "ci95_high": 0.0014206741033022663,
+        "ci95_basic_low": 0.0014206741033022663,
+        "ci95_basic_high": 0.0014206741033022663,
+        "median": 0.0014206741033022663,
+        "ci95_width_over_point": 0.0,
+        "relative_bias": 0.0
+      },
+      "_stability": {
+        "min_floor_seen": 0.00022432086288359798,
+        "floor_within_1e3_of_clamp_frac": 0.0,
+        "ratio_p99_over_p50": 1.2483380846871839,
+        "heavy_tailed": false,
+        "note": "Ratio is a quotient by the reference-vs-train MMD floor. Schemes that resample the reference or train set can shrink that floor toward zero, so their Ratio bootstrap is heavy-tailed: read the percentile interval, not the mean or std."
+      }
+    },
+    "reference_only": {
+      "mmd/degree": {
+        "point": 0.045378357306872896,
+        "bootstrap_mean": 0.045604808148009254,
+        "bootstrap_bias": 0.00022645084113635805,
+        "bootstrap_std": 0.0019572944042687336,
+        "ci95_low": 0.04181105151193336,
+        "ci95_high": 0.049423696167326364,
+        "ci95_basic_low": 0.04133301844641943,
+        "ci95_basic_high": 0.048945663101812434,
+        "median": 0.04565736796968489,
+        "ci95_width_over_point": 0.1677593704838675,
+        "relative_bias": 0.004990282914054722
+      },
+      "mmd/clustering": {
+        "point": 0.36885316712953253,
+        "bootstrap_mean": 0.38972838909744084,
+        "bootstrap_bias": 0.02087522196790831,
+        "bootstrap_std": 0.03935528090237069,
+        "ci95_low": 0.31810138224354995,
+        "ci95_high": 0.47214699381282316,
+        "ci95_basic_low": 0.2655593404462419,
+        "ci95_basic_high": 0.4196049520155151,
+        "median": 0.38833396932525455,
+        "ci95_width_over_point": 0.4176339673807817,
+        "relative_bias": 0.056594937574651276
+      },
+      "mmd/spectral": {
+        "point": 0.05087953026058578,
+        "bootstrap_mean": 0.05494904107500817,
+        "bootstrap_bias": 0.004069510814422389,
+        "bootstrap_std": 0.0026536356518743354,
+        "ci95_low": 0.050160593377728255,
+        "ci95_high": 0.0607298016869725,
+        "ci95_basic_low": 0.04102925883419906,
+        "ci95_basic_high": 0.05159846714344331,
+        "median": 0.05480634289032771,
+        "ci95_width_over_point": 0.2077300685582737,
+        "relative_bias": 0.0799832622978217
+      },
+      "mmd/wavelet": {
+        "point": 0.14113050551818485,
+        "bootstrap_mean": 0.141928772215628,
+        "bootstrap_bias": 0.0007982666974431507,
+        "bootstrap_std": 0.0034466872942564347,
+        "ci95_low": 0.13530766372194974,
+        "ci95_high": 0.148926283697995,
+        "ci95_basic_low": 0.1333347273383747,
+        "ci95_basic_high": 0.14695334731441995,
+        "median": 0.14187425424554223,
+        "ci95_width_over_point": 0.09649664277784696,
+        "relative_bias": 0.005656230695923448
+      },
+      "mmd/orbit": {
+        "point": 0.3442288919270555,
+        "bootstrap_mean": 0.3441753594116332,
+        "bootstrap_bias": -5.353251542233872e-05,
+        "bootstrap_std": 0.014526571592599445,
+        "ci95_low": 0.31589442473409896,
+        "ci95_high": 0.37261106314864884,
+        "ci95_basic_low": 0.3158467207054622,
+        "ci95_basic_high": 0.3725633591200121,
+        "median": 0.34436771159196855,
+        "ci95_width_over_point": 0.16476431741984204,
+        "relative_bias": -0.00015551430073941218
+      },
+      "ratio/degree": {
+        "point": 202.29218414943944,
+        "bootstrap_mean": 82859.75418000262,
+        "bootstrap_bias": 82657.46199585318,
+        "bootstrap_std": 602471.9195991447,
+        "ci95_low": 34.4605490818481,
+        "ci95_high": 1884.9622339578957,
+        "ci95_basic_low": -1480.3778656590168,
+        "ci95_basic_high": 370.12381921703076,
+        "median": 102.0718869770048,
+        "ci95_width_over_point": 9.147667729510625,
+        "relative_bias": 408.6043281572934
+      },
+      "ratio/clustering": {
+        "point": 14.908492573047281,
+        "bootstrap_mean": 9.089627548283703,
+        "bootstrap_bias": -5.8188650247635785,
+        "bootstrap_std": 2.034130512039877,
+        "ci95_low": 5.871316818174596,
+        "ci95_high": 13.645153043326546,
+        "ci95_basic_low": 16.171832102768015,
+        "ci95_basic_high": 23.945668327919968,
+        "median": 8.810835682367404,
+        "ci95_width_over_point": 0.5214367708245762,
+        "relative_bias": -0.3903053911220622
+      },
+      "ratio/spectral": {
+        "point": 7.223924508304833,
+        "bootstrap_mean": 5.069508064152944,
+        "bootstrap_bias": -2.154416444151889,
+        "bootstrap_std": 0.6627378032122638,
+        "ci95_low": 3.918278696713398,
+        "ci95_high": 6.505808138337047,
+        "ci95_basic_low": 7.9420408782726195,
+        "ci95_basic_high": 10.52957031989627,
+        "median": 5.004554962400274,
+        "ci95_width_over_point": 0.3581888817704213,
+        "relative_bias": -0.2982335213601844
+      },
+      "ratio/wavelet": {
+        "point": 134.9035703825942,
+        "bootstrap_mean": 83.3675447494945,
+        "bootstrap_bias": -51.53602563309971,
+        "bootstrap_std": 18.94662488653705,
+        "ci95_low": 52.32177280658261,
+        "ci95_high": 124.91599796110958,
+        "ci95_basic_low": 144.89114280407884,
+        "ci95_basic_high": 217.48536795860582,
+        "median": 81.50976525860871,
+        "ci95_width_over_point": 0.5381193762970514,
+        "relative_bias": -0.38202121327805194
+      },
+      "ratio/orbit": {
+        "point": 242.2996879639207,
+        "bootstrap_mean": 385472.1489201728,
+        "bootstrap_bias": 385229.8492322089,
+        "bootstrap_std": 3488052.253822492,
+        "ci95_low": 57.5101379720367,
+        "ci95_high": 8015.047339754702,
+        "ci95_basic_low": -7530.44796382686,
+        "ci95_basic_high": 427.08923795580466,
+        "median": 246.07784231101084,
+        "ci95_width_over_point": 32.841714608264674,
+        "relative_bias": 1589.8899931293806
+      },
+      "ratio": {
+        "point": 120.3255719154613,
+        "bootstrap_mean": 93685.88595610746,
+        "bootstrap_bias": 93565.56038419201,
+        "bootstrap_std": 706136.5635001444,
+        "ci95_low": 46.14036215259238,
+        "ci95_high": 878342.3082612253,
+        "ci95_basic_low": -878101.6571173944,
+        "ci95_basic_high": 194.5107816783302,
+        "median": 106.54630221684384,
+        "ci95_width_over_point": 7299.330922907632,
+        "relative_bias": 777.6032882680132
+      },
+      "floor/degree": {
+        "point": 0.0005076956316397655,
+        "bootstrap_mean": 0.0005076956316397655,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0003327060391994582,
+        "ci95_low": 2.4152141950856135e-05,
+        "ci95_high": 0.001294787855129279,
+        "ci95_basic_low": -0.00027939659184974793,
+        "ci95_basic_high": 0.0009912391213286749,
+        "median": 0.00044727580975867376,
+        "ci95_width_over_point": 2.502750927902409,
+        "relative_bias": 0.0
+      },
+      "floor/clustering": {
+        "point": 0.04526693443362234,
+        "bootstrap_mean": 0.04526693443362234,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0121667985226578,
+        "ci95_low": 0.025646661707593103,
+        "ci95_high": 0.07365765665489538,
+        "ci95_basic_low": 0.016876212212349306,
+        "ci95_basic_high": 0.06488720715965157,
+        "median": 0.043786810183222336,
+        "ci95_width_over_point": 1.060619534943408,
+        "relative_bias": 0.0
+      },
+      "floor/spectral": {
+        "point": 0.011058514436080927,
+        "bootstrap_mean": 0.011058514436080927,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0017796017227414652,
+        "ci95_low": 0.007938876789192473,
+        "ci95_high": 0.014931459190869632,
+        "ci95_basic_low": 0.007185569681292222,
+        "ci95_basic_high": 0.01417815208296938,
+        "median": 0.010961411247945918,
+        "ci95_width_over_point": 0.6323256565874945,
+        "relative_bias": 0.0
+      },
+      "floor/wavelet": {
+        "point": 0.0017953515422622014,
+        "bootstrap_mean": 0.0017953515422622014,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0004315910567573207,
+        "ci95_low": 0.0011114445497313775,
+        "ci95_high": 0.0027704035629031324,
+        "ci95_basic_low": 0.0008202995216212705,
+        "ci95_basic_high": 0.0024792585347930256,
+        "median": 0.0017362668191293062,
+        "ci95_width_over_point": 0.9240301824574214,
+        "relative_bias": 0.0
+      },
+      "floor/orbit": {
+        "point": 0.0019055388221047931,
+        "bootstrap_mean": 0.0019055388221047931,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0017734229032009754,
+        "ci95_low": 4.046206374315742e-05,
+        "ci95_high": 0.006502845789817545,
+        "ci95_basic_low": -0.0026917681456079586,
+        "ci95_basic_high": 0.003770615580466429,
+        "median": 0.0014008459186710676,
+        "ci95_width_over_point": 3.3913681794928006,
+        "relative_bias": 0.0
+      },
+      "_stability": {
+        "min_floor_seen": -0.00017303877116492394,
+        "floor_within_1e3_of_clamp_frac": 0.0073,
+        "ratio_p99_over_p50": 59298.63769295111,
+        "heavy_tailed": true,
+        "note": "Ratio is a quotient by the reference-vs-train MMD floor. Schemes that resample the reference or train set can shrink that floor toward zero, so their Ratio bootstrap is heavy-tailed: read the percentile interval, not the mean or std."
+      }
+    },
+    "full": {
+      "mmd/degree": {
+        "point": 0.045378357306872896,
+        "bootstrap_mean": 0.04640841328572869,
+        "bootstrap_bias": 0.001030055978855797,
+        "bootstrap_std": 0.005187499462633368,
+        "ci95_low": 0.03661692707797905,
+        "ci95_high": 0.057585431289083194,
+        "ci95_basic_low": 0.0331712833246626,
+        "ci95_basic_high": 0.054139787535766745,
+        "median": 0.04623385149545267,
+        "ci95_width_over_point": 0.46208160575985213,
+        "relative_bias": 0.022699278686753765
+      },
+      "mmd/clustering": {
+        "point": 0.36885316712953253,
+        "bootstrap_mean": 0.42008863984625666,
+        "bootstrap_bias": 0.05123547271672413,
+        "bootstrap_std": 0.03947025704195811,
+        "ci95_low": 0.3480588443272861,
+        "ci95_high": 0.503359252045223,
+        "ci95_basic_low": 0.23434708221384204,
+        "ci95_basic_high": 0.38964748993177895,
+        "median": 0.4187017716558647,
+        "ci95_width_over_point": 0.42103585263075444,
+        "relative_bias": 0.13890479269961492
+      },
+      "mmd/spectral": {
+        "point": 0.05087953026058578,
+        "bootstrap_mean": 0.0597552708704668,
+        "bootstrap_bias": 0.00887574060988102,
+        "bootstrap_std": 0.00396534671253978,
+        "ci95_low": 0.052630145231090095,
+        "ci95_high": 0.06816899184397361,
+        "ci95_basic_low": 0.03359006867719795,
+        "ci95_basic_high": 0.04912891529008147,
+        "median": 0.05959541022462933,
+        "ci95_width_over_point": 0.30540467911750363,
+        "relative_bias": 0.17444619799795363
+      },
+      "mmd/wavelet": {
+        "point": 0.14113050551818485,
+        "bootstrap_mean": 0.143698014084155,
+        "bootstrap_bias": 0.0025675085659701558,
+        "bootstrap_std": 0.00518994380639099,
+        "ci95_low": 0.13408495372069923,
+        "ci95_high": 0.15436800034172404,
+        "ci95_basic_low": 0.12789301069464565,
+        "ci95_basic_high": 0.14817605731567046,
+        "median": 0.14346380548658078,
+        "ci95_width_over_point": 0.14371837290989734,
+        "relative_bias": 0.01819244221185992
+      },
+      "mmd/orbit": {
+        "point": 0.3442288919270555,
+        "bootstrap_mean": 0.3510361011219405,
+        "bootstrap_bias": 0.006807209194884978,
+        "bootstrap_std": 0.06657301722829631,
+        "ci95_low": 0.23991251269879443,
+        "ci95_high": 0.49499312372572374,
+        "ci95_basic_low": 0.1934646601283873,
+        "ci95_basic_high": 0.4485452711553166,
+        "median": 0.34652149184989456,
+        "ci95_width_over_point": 0.7410203414331143,
+        "relative_bias": 0.019775240703291903
+      },
+      "ratio/degree": {
+        "point": 202.29218414943944,
+        "bootstrap_mean": 84988.75195541528,
+        "bootstrap_bias": 84786.45977126584,
+        "bootstrap_std": 620505.2735327791,
+        "ci95_low": 29.563301899501663,
+        "ci95_high": 1818.8880309838287,
+        "ci95_basic_low": -1414.3036626849498,
+        "ci95_basic_high": 375.0210663993772,
+        "median": 88.10813768997343,
+        "ci95_width_over_point": 8.845248948236666,
+        "relative_bias": 419.1286980649311
+      },
+      "ratio/clustering": {
+        "point": 14.908492573047281,
+        "bootstrap_mean": 8.647283585987763,
+        "bootstrap_bias": -6.2612089870595184,
+        "bootstrap_std": 2.1948449227400326,
+        "ci95_low": 5.269793227906382,
+        "ci95_high": 13.673494607920977,
+        "ci95_basic_low": 16.143490538173587,
+        "ci95_basic_high": 24.547191918188183,
+        "median": 8.345344399668267,
+        "ci95_width_over_point": 0.5636855194338999,
+        "relative_bias": -0.41997599397668234
+      },
+      "ratio/spectral": {
+        "point": 7.223924508304833,
+        "bootstrap_mean": 5.066096811630727,
+        "bootstrap_bias": -2.157827696674106,
+        "bootstrap_std": 0.8159202918840555,
+        "ci95_low": 3.7553230485507774,
+        "ci95_high": 6.989158277629404,
+        "ci95_basic_low": 7.458690738980263,
+        "ci95_basic_high": 10.692525968058888,
+        "median": 5.01953868564784,
+        "ci95_width_over_point": 0.44765628784754263,
+        "relative_bias": -0.29870573733064415
+      },
+      "ratio/wavelet": {
+        "point": 134.9035703825942,
+        "bootstrap_mean": 76.99413070415555,
+        "bootstrap_bias": -57.90943967843866,
+        "bootstrap_std": 17.86351320110264,
+        "ci95_low": 47.89455363201201,
+        "ci95_high": 117.93686676333446,
+        "ci95_basic_low": 151.87027400185394,
+        "ci95_basic_high": 221.9125871331764,
+        "median": 75.36948667254603,
+        "ci95_width_over_point": 0.5192028122953193,
+        "relative_bias": -0.4292654339259086
+      },
+      "ratio/orbit": {
+        "point": 242.2996879639207,
+        "bootstrap_mean": 438612.1401105487,
+        "bootstrap_bias": 438369.8404225848,
+        "bootstrap_std": 3874082.0012796414,
+        "ci95_low": 44.85721096359791,
+        "ci95_high": 8263.185221651018,
+        "ci95_basic_low": -7778.585845723176,
+        "ci95_basic_high": 439.74216496424344,
+        "median": 235.0308611869262,
+        "ci95_width_over_point": 33.91802969185483,
+        "relative_bias": 1809.2051380927064
+      },
+      "ratio": {
+        "point": 120.3255719154613,
+        "bootstrap_mean": 104738.31991541314,
+        "bootstrap_bias": 104617.99434349769,
+        "bootstrap_std": 782795.4032226909,
+        "ci95_low": 38.09921318477574,
+        "ci95_high": 873137.4210254848,
+        "ci95_basic_low": -872896.7698816538,
+        "ci95_basic_high": 202.55193064614684,
+        "median": 98.04020049457787,
+        "ci95_width_over_point": 7256.141050596666,
+        "relative_bias": 869.4576944708023
+      },
+      "floor/degree": {
+        "point": 0.0005932185739198447,
+        "bootstrap_mean": 0.0005932185739198447,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0004027367462555359,
+        "ci95_low": 2.5859384116522224e-05,
+        "ci95_high": 0.0015435512664838274,
+        "ci95_basic_low": -0.0003571141186441381,
+        "ci95_basic_high": 0.001160577763723167,
+        "median": 0.0005255081964365971,
+        "ci95_width_over_point": 2.558402499670172,
+        "relative_bias": 0.0
+      },
+      "floor/clustering": {
+        "point": 0.051749416588891026,
+        "bootstrap_mean": 0.051749416588891026,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.014283223747586948,
+        "ci95_low": 0.02906731756450754,
+        "ci95_high": 0.08345174845070036,
+        "ci95_basic_low": 0.020047084727081693,
+        "ci95_basic_high": 0.07443151561327452,
+        "median": 0.05001370398330224,
+        "ci95_width_over_point": 1.0509187247121052,
+        "relative_bias": 0.0
+      },
+      "floor/spectral": {
+        "point": 0.012097937528518099,
+        "bootstrap_mean": 0.012097937528518099,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.0020944854506118327,
+        "ci95_low": 0.00844973123462488,
+        "ci95_high": 0.01632046780283358,
+        "ci95_basic_low": 0.007875407254202618,
+        "ci95_basic_high": 0.015746143822411317,
+        "median": 0.01191028527334348,
+        "ci95_width_over_point": 0.6505849901816116,
+        "relative_bias": 0.0
+      },
+      "floor/wavelet": {
+        "point": 0.0019687165974403434,
+        "bootstrap_mean": 0.0019687165974403434,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.00047160805774635906,
+        "ci95_low": 0.0012061299140617432,
+        "ci95_high": 0.003063956592900829,
+        "ci95_basic_low": 0.0008734766019798577,
+        "ci95_basic_high": 0.0027313032808189436,
+        "median": 0.0019120914797225996,
+        "ci95_width_over_point": 0.943674006332129,
+        "relative_bias": 0.0
+      },
+      "floor/orbit": {
+        "point": 0.0021268811112490366,
+        "bootstrap_mean": 0.0021268811112490366,
+        "bootstrap_bias": 0.0,
+        "bootstrap_std": 0.002149900581275016,
+        "ci95_low": 4.253634970963205e-05,
+        "ci95_high": 0.008049394051141872,
+        "ci95_basic_low": -0.0037956318286437984,
+        "ci95_basic_high": 0.004211225872788441,
+        "median": 0.0014963221088931666,
+        "ci95_width_over_point": 3.764600503095406,
+        "relative_bias": 0.0
+      },
+      "_stability": {
+        "min_floor_seen": -0.00030755694223838503,
+        "floor_within_1e3_of_clamp_frac": 0.007,
+        "ratio_p99_over_p50": 54525.181175517355,
+        "heavy_tailed": true,
+        "note": "Ratio is a quotient by the reference-vs-train MMD floor. Schemes that resample the reference or train set can shrink that floor toward zero, so their Ratio bootstrap is heavy-tailed: read the percentile interval, not the mean or std."
+      }
+    }
+  },
+  "er_control": {
+    "committed_er_ratio": 337.9131094324825,
+    "recomputed_er_ratio": 337.9134493439645,
+    "reproduced": false,
+    "er_ratio_bootstrap": {
+      "point": 337.9134493439645,
+      "bootstrap_mean": 341.4326442180009,
+      "bootstrap_bias": 3.5191948740364296,
+      "bootstrap_std": 7.5240762947592295,
+      "ci95_low": 327.4550407645945,
+      "ci95_high": 357.3628815814883,
+      "ci95_basic_low": 318.4640171064407,
+      "ci95_basic_high": 348.37185792333446,
+      "median": 341.1070329931636,
+      "ci95_width_over_point": 0.08850739997167256,
+      "relative_bias": 0.010414485960439581
+    },
+    "model_minus_er": {
+      "point": -217.5878774285032,
+      "bootstrap_mean": -218.2123042350645,
+      "bootstrap_bias": -0.6244268065613028,
+      "bootstrap_std": 13.65220714345242,
+      "ci95_low": -243.35353230508576,
+      "ci95_high": -190.07276766912202,
+      "ci95_basic_low": -245.10298718788437,
+      "ci95_basic_high": -191.82222255192062,
+      "median": -218.7059672837563,
+      "ci95_width_over_point": 0.2448700969265679,
+      "relative_bias": -0.002869768361826509
+    },
+    "fraction_of_resamples_model_beats_er": 1.0,
+    "note": "Both sides resample only their own 32 generated graphs; the reference and train sets are shared and held fixed, so this is a paired difference.",
+    "independent_er_redraws": {
+      "n_draws": 20,
+      "mean": 340.8425985421591,
+      "std": 7.231956576647538,
+      "min": 329.9242384881971,
+      "max": 357.6088087579908,
+      "values": [
+        346.2740824698401,
+        349.87709195611586,
+        343.99841854071843,
+        333.19658766579505,
+        339.42469032443967,
+        357.6088087579908,
+        334.426470661905,
+        336.0241035958985,
+        338.77163107171765,
+        335.58411896997984,
+        345.3324723110085,
+        333.96258249943537,
+        344.4757253634898,
+        344.22040134472024,
+        350.58467069128403,
+        329.9242384881971,
+        337.8535234298015,
+        346.6456240056845,
+        335.09701968126217,
+        333.569709013898
+      ]
+    }
+  },
+  "memorisation": {
+    "uniqueness": {
+      "fraction_unique_isomorphism": 1.0,
+      "distinct_wl_hashes": 32,
+      "n_samples": 32,
+      "pairwise_edge_jaccard_mean": 0.04553922632403463,
+      "pairwise_edge_jaccard_max": 0.08187134502923976,
+      "reference_pairwise_edge_jaccard_mean": 0.04657301521448844,
+      "note": "Isomorphism-based uniqueness saturates at 1.0 for graphs this dense. The pairwise edge Jaccard is the graded version; compare it against the reference split's own pairwise value for scale."
+    },
+    "novelty_vs_train": {
+      "fraction_novel_isomorphism": 1.0,
+      "n_train": 128,
+      "nearest_train_graph": {
+        "mean_max_jaccard": 0.07876892140694036,
+        "std_max_jaccard": 0.00570405811074974,
+        "max_max_jaccard": 0.09565217391304348,
+        "min_max_jaccard": 0.0712166172106825,
+        "n_query": 32,
+        "n_corpus": 128
+      },
+      "reference_nearest_train_graph": {
+        "mean_max_jaccard": 0.07922173424980614,
+        "std_max_jaccard": 0.003912578661797008,
+        "max_max_jaccard": 0.08536585365853659,
+        "min_max_jaccard": 0.06990881458966565,
+        "n_query": 32,
+        "n_corpus": 128
+      },
+      "train_nearest_other_train_graph": {
+        "mean_max_jaccard": 0.07850910746406911,
+        "std_max_jaccard": 0.006347737969801406,
+        "max_max_jaccard": 0.10153846153846154,
+        "min_max_jaccard": 0.0668693009118541,
+        "n_query": 128,
+        "n_corpus": 128
+      },
+      "note": "`nearest_train_graph` is node-aligned edge Jaccard against the closest of the 128 training graphs. The two reference rows are the real-data scale: a held-out real graph's nearest training graph scores about the same, so a generated value near them is not memorisation."
+    },
+    "conditioning_graph": {
+      "jaccard": {
+        "matched_mean": 0.48530435577110986,
+        "matched_std": 0.030352501772683758,
+        "matched_min": 0.425531914893617,
+        "matched_max": 0.5512820512820513,
+        "mismatched_mean": 0.046086876449340924,
+        "mismatched_std": 0.011112601489576093,
+        "difference_mean": 0.4392174793217689,
+        "difference_ci95": {
+          "point": 0.4392174793217689,
+          "bootstrap_mean": 0.4391803698522627,
+          "bootstrap_bias": -3.710946950619132e-05,
+          "bootstrap_std": 0.005168651016218387,
+          "ci95_low": 0.42927519092634936,
+          "ci95_high": 0.44951590330101554,
+          "ci95_basic_low": 0.4289190553425223,
+          "ci95_basic_high": 0.44915976771718846,
+          "median": 0.4390778336205624,
+          "ci95_width_over_point": 0.04608357665073233,
+          "relative_bias": -8.448996511590349e-05
+        }
+      },
+      "precision": {
+        "matched_mean": 0.6574945048084759,
+        "matched_std": 0.03422494109932695,
+        "matched_min": 0.5909090909090909,
+        "matched_max": 0.7108433734939759,
+        "mismatched_mean": 0.08844777278903933,
+        "mismatched_std": 0.0202830931700332,
+        "difference_mean": 0.5690467320194367,
+        "difference_ci95": {
+          "point": 0.5690467320194367,
+          "bootstrap_mean": 0.568981992265884,
+          "bootstrap_bias": -6.473975355270056e-05,
+          "bootstrap_std": 0.005585479210301136,
+          "ci95_low": 0.5581622013572808,
+          "ci95_high": 0.5798507941222852,
+          "ci95_basic_low": 0.5582426699165881,
+          "ci95_basic_high": 0.5799312626815926,
+          "median": 0.5689674298958086,
+          "ci95_width_over_point": 0.03811390443810447,
+          "relative_bias": -0.00011376878191172756
+        }
+      },
+      "recall": {
+        "matched_mean": 0.6495558133067347,
+        "matched_std": 0.032749943739981385,
+        "matched_min": 0.5747126436781609,
+        "matched_max": 0.7288135593220338,
+        "mismatched_mean": 0.08752041575119178,
+        "mismatched_std": 0.020603918016147357,
+        "difference_mean": 0.562035397555543,
+        "difference_ci95": {
+          "point": 0.562035397555543,
+          "bootstrap_mean": 0.562095234716242,
+          "bootstrap_bias": 5.983716069901668e-05,
+          "bootstrap_std": 0.005142809311066541,
+          "ci95_low": 0.5517736797900661,
+          "ci95_high": 0.5720731712508977,
+          "ci95_basic_low": 0.5519976238601882,
+          "ci95_basic_high": 0.5722971153210199,
+          "median": 0.5621237014893945,
+          "ci95_width_over_point": 0.036117816687561144,
+          "relative_bias": 0.00010646511048817577
+        }
+      },
+      "f1": {
+        "matched_mean": 0.6529315882670843,
+        "matched_std": 0.02744026358723846,
+        "matched_min": 0.5970149253731344,
+        "matched_max": 0.7107438016528926,
+        "mismatched_mean": 0.08789812437164363,
+        "mismatched_std": 0.02024116773797272,
+        "difference_mean": 0.5650334638954406,
+        "difference_ci95": {
+          "point": 0.5650334638954406,
+          "bootstrap_mean": 0.5651492276592491,
+          "bootstrap_bias": 0.00011576376380850739,
+          "bootstrap_std": 0.004561634590415089,
+          "ci95_low": 0.5560094086701856,
+          "ci95_high": 0.5739829618000235,
+          "ci95_basic_low": 0.5560839659908577,
+          "ci95_basic_high": 0.5740575191206957,
+          "median": 0.5650988242907894,
+          "ci95_width_over_point": 0.03180971442987659,
+          "relative_bias": 0.00020487948273083072
+        }
+      },
+      "intersection": {
+        "matched_mean": 115.4375,
+        "matched_std": 6.298681377619778,
+        "matched_min": 100.0,
+        "matched_max": 129.0,
+        "mismatched_mean": 15.55141129032258,
+        "mismatched_std": 3.664455227344504,
+        "difference_mean": 99.88608870967742,
+        "difference_ci95": {
+          "point": 99.88608870967742,
+          "bootstrap_mean": 99.8641129032258,
+          "bootstrap_bias": -0.021975806451621338,
+          "bootstrap_std": 1.0007647547952665,
+          "ci95_low": 97.87530241935484,
+          "ci95_high": 101.77522681451613,
+          "ci95_basic_low": 97.99695060483872,
+          "ci95_basic_high": 101.89687500000001,
+          "median": 99.86088709677419,
+          "ci95_width_over_point": 0.039043719155893324,
+          "relative_bias": -0.0002200086792415591
+        }
+      },
+      "retrieval": {
+        "top1_accuracy": 1.0,
+        "chance_top1": 0.03125,
+        "mean_rank_of_own_condition": 1.0,
+        "expected_rank_by_chance": 16.5,
+        "n_candidates": 32
+      }
+    },
+    "conditioning_spectrum": {
+      "k": 8,
+      "n_trivial_eigenpairs_skipped": 1,
+      "matched_l2_mean": 0.1788533501306746,
+      "mismatched_l2_mean": 0.18000963568831252,
+      "difference_mean": -0.001156285557637938,
+      "retrieval_top1_accuracy": 0.03125,
+      "chance_top1": 0.03125,
+      "note": "Lower L2 is closer. matched < mismatched means the sample's own low band is nearer its conditioning spectrum than to other graphs' spectra."
+    },
+    "pairing": "Sample i was conditioned on the spectrum of validation graph i. Confirmed from scripts/train_adjacency_diffusion.py: eval_graphs = splits['val'] (unshuffled), the DataLoader is built with shuffle=False, _sample_loader extends its output in loader order, and build_condition_tensors uses an identity donor map for every band except 'shuffled'."
+  },
+  "validity_diagnosis": {
+    "n_graphs": 32,
+    "connected_frac": 0.46875,
+    "planar_frac": 0.0,
+    "valid_frac": 0.0,
+    "exceeds_3n_minus_6_frac": 0.09375,
+    "mean_components": 1.65625,
+    "mean_edges_over_bound": 0.9455645161290323,
+    "mean_distance_to_planar": null,
+    "median_distance_to_planar": null,
+    "beyond_search_frac": 1.0
+  },
+  "validity_diagnosis_extra": {
+    "connected_frac_ci95": {
+      "point": 0.46875,
+      "bootstrap_mean": 0.470859375,
+      "bootstrap_bias": 0.0021093750000000244,
+      "bootstrap_std": 0.08680416205248566,
+      "ci95_low": 0.3125,
+      "ci95_high": 0.625,
+      "ci95_basic_low": 0.3125,
+      "ci95_basic_high": 0.625,
+      "median": 0.46875,
+      "ci95_width_over_point": 0.6666666666666666,
+      "relative_bias": 0.004500000000000052
+    },
+    "planar_frac_ci95": {
+      "point": 0.0,
+      "bootstrap_mean": 0.0,
+      "bootstrap_bias": 0.0,
+      "bootstrap_std": 0.0,
+      "ci95_low": 0.0,
+      "ci95_high": 0.0,
+      "ci95_basic_low": 0.0,
+      "ci95_basic_high": 0.0,
+      "median": 0.0
+    },
+    "valid_frac_ci95": {
+      "point": 0.0,
+      "bootstrap_mean": 0.0,
+      "bootstrap_bias": 0.0,
+      "bootstrap_std": 0.0,
+      "ci95_low": 0.0,
+      "ci95_high": 0.0,
+      "ci95_basic_low": 0.0,
+      "ci95_basic_high": 0.0,
+      "median": 0.0
+    },
+    "component_count_histogram": {
+      "1": 15,
+      "2": 13,
+      "3": 4
+    },
+    "largest_component_mean": 63.3125,
+    "largest_component_min": 61,
+    "n_nodes": 64,
+    "mean_edges": 175.875,
+    "planar_edge_bound_3n_minus_6": 186,
+    "reference_connected_frac": 1.0,
+    "reference_planar_frac": 1.0,
+    "note": "validity = connected AND planar. These rows separate the two so a 0% validity figure is attributable."
+  },
+  "coverage": {
+    "arms_in_paper": 12,
+    "arms_with_saved_samples": 1,
+    "arm_covered": "low k=8 planar seed 0",
+    "note": "Every other report's samples_path points at a teammate's local Windows OneDrive and the files are not in this repository; checkpoints/ is empty. Per-arm uncertainty for the remaining 11 arms is unrecoverable without those files or a retrain."
+  }
+}

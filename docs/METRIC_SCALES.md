@@ -9,6 +9,11 @@ The ER reference is 334.82 in Table 1 and 161.67 in Stage 8, on the same validat
 reviewer flagged this as unexplained and correctly judged that a 2x move is too large for seed
 noise.
 
+(Two ER numbers appear below and both are correct: **337.91** is the seed-0 reference stored in
+every `adjacency_diffusion_planar_*_k8.json`, and **334.82** is the three-seed mean of it with
+seeds 1 and 2 at 322.65 and 343.89. They are not competing measurements. The paper quotes the
+seed-0 figure.)
+
 The cause is in the evaluation setup, not the data. Both `train_adjacency_diffusion.py` and
 `sample_end_to_end.py` build their metric list conditionally:
 
@@ -67,14 +72,18 @@ They are different experiments, not different versions of one experiment
 | notebook (pilot) | 6 | 200 | 500 | -- | 306.78 | 30.07 |
 | notebook (scaled) | 10 | 500 | 1000 | ~86 | **39.60** | **15.40** |
 
-Neither notebook pair was ever written to `results/`. The scaled-up pair is the project's best
-matched comparison and the best Ratio recorded anywhere in it, and the paper omits it.
+Neither notebook pair was ever written to `results/` at the time. The scaled-up pair is the
+project's best matched comparison and the best Ratio recorded anywhere in it. **Both points have
+since been acted on:** the pair is recovered into `results/discrete_scaled_up_planar.json`, and
+the paper now reports it (§"From oracle to end-to-end": the unconditioned baseline improving
+~8x to 39.60, conditioning to 15.40, and the gap narrowing from ~220 Ratio points to ~24).
 
 **Why it matters for the argument.** At the scaled-up configuration the *unconditioned*
 baseline improves roughly 8x (327 -> 39.60). Conditioning still helps by -61%, but the
 absolute gap narrows from ~220 Ratio points to ~24. The pilot's headline overstates how much
-conditioning contributes at a serious training budget, so the scaled-up pair belongs in the
-paper -- it is a weaker but far more honest number.
+conditioning contributes at a serious training budget -- a weaker but far more honest number,
+and one of the two reasons the k=8 result should not be read as a settled effect. The other is
+the leakage confound in [LEAKAGE.md](LEAKAGE.md).
 
 Zero validity persists at every scale, including the 86-minute runs.
 
@@ -110,8 +119,16 @@ mean; this table is the seed-0 pair. The agreement is close and the conclusion i
 **What to report instead:** per-metric ratios alongside the aggregate, and a geometric mean,
 which is the appropriate summary for quantities spanning orders of magnitude and is far less
 sensitive to a single small-floor metric. Both are emitted into
-`results/report_breakdown.json`.
+`results/report_breakdown.json`. On the seed-0 pair the geometric mean puts the improvement at
+**-34.8%** (100.997 -> 65.849), against **-52.9%** for the arithmetic aggregate
+(321.21 -> 151.29) -- the same result, a third smaller.
+
+(Be careful which pair is being quoted: -52.9% is the seed-0 decomposition tabulated above,
+while -51.7% is the three-seed mean of Table 1's 327.23 -> 157.97. Everything in this section is
+seed-0.)
 
 This does not overturn the low-band result -- the `low` arm still wins on four of five metrics,
-and on validation loss, which is metric-free. But "-51.7% aggregate" overstates how broad the
+and on validation loss, which is metric-free. But the aggregate overstates how broad the
 improvement is, and the degree regression deserves to be stated rather than averaged away.
+Separately, and more seriously, the low-band result now carries an unresolved leakage confound:
+see [LEAKAGE.md](LEAKAGE.md).

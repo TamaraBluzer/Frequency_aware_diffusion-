@@ -4,6 +4,13 @@ Everything downstream reads the spectrum through these functions, so an off-by-o
 indexing or a sign convention error would silently corrupt the headline result instead of
 crashing. Hence Stage 3's gate is a set of checks with model-independent known answers.
 
+The gate below covers `fald/data/spectral.py`, and it held. The failure this project actually
+suffered was the same class of error one layer out, in an analysis script with no gate:
+`scripts/condition_leakage.py` assumed a ranking sign instead of resolving it, and published a
+below-chance number as a headline result for weeks ([LEAKAGE.md](LEAKAGE.md)). The lesson
+generalises -- anything that consumes eigenvectors needs a known-answer check, not only the
+module that produces them.
+
 ## Choices, and why
 
 **`L_norm = I − D^{−1/2} A D^{−1/2}`, never `L = D − A`** (WORKPLAN G6). The combinatorial
@@ -27,7 +34,7 @@ claim falsifiable rather than a statement about parameter count (WORKPLAN G4).
 
 | Arm | `C_k` |
 |---|---|
-| `low` | `(λ₂..λ_{k+1}, u₂..u_{k+1})` — the headline arm |
+| `low` | `(λ₂..λ_{k+1}, u₂..u_{k+1})` — the arm the k=8 kill gate is built on |
 | `high` | `(λ_{n−k+1}..λ_n, u_{n−k+1}..u_n)` |
 | `random` | `k` eigenpairs sampled without replacement from indices `2..n` |
 | `gaussian` | `k` random scalars and an `N(0,1)` matrix in `R^{n×k}` — strictest control, identical shape, zero structural information |
@@ -86,8 +93,15 @@ python scripts/spectral_sanity.py
 ![u2 node colouring](../results/figures/u2_node_coloring.png)
 
 The figure is the one that makes the hypothesis legible. On Planar, `u₂` is a smooth spatial
-gradient across the layout. On SBM it splits the graph into its communities — precisely the
-global structure we claim low-frequency conditioning supplies.
+gradient across the layout. On SBM it splits the graph into its communities — the kind of global
+structure low-frequency conditioning is hypothesised to supply.
+
+That is an illustration of the hypothesis, not evidence for it. On Planar the same low band is
+now measured as recovering 72.7% of the target's edges at k=8, so "supplies coarse global
+structure" and "hands over the target" are not currently distinguishable from the generation
+results. See [LEAKAGE.md](LEAKAGE.md). The figure arguably cuts the other way on Planar: a `u₂`
+that is a smooth gradient over the point layout is a plausible mechanism for *why* the low band
+gives that construction away.
 
 ## Disconnected graphs: resolved
 
@@ -99,7 +113,7 @@ This matters because 3 of 128 SBM training graphs (2.3%) are disconnected. With 
 frequency information. Dropping only the first leaves `c−1` of them inside the band — at `k=2`
 on a 2-component graph, half the conditioning budget. Because extra zero eigenvalues sit at the
 *bottom* of the spectrum, this pollutes the `low` arm and leaves `high` untouched, biasing
-precisely the low-versus-high comparison that is the headline claim.
+precisely the low-versus-high comparison the study rests on.
 
 Disconnection is not a data defect. With blocks of ~25–31 nodes and `p_inter ≈ 0.003` only about
 2 edges are expected between a given pair of blocks, so occasionally getting zero is ordinary

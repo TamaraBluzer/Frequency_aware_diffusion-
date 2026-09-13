@@ -1,0 +1,30 @@
+{
+  "experiment": "condition_leakage",
+  "description": "Model-free edge recovery from the spectral condition. Uses the true edge count to threshold the scored pairs and the true edge set to resolve the pair channel's sign, so values upper-bound what this rank-and-threshold decoder can extract. 'edge_recovery_neg'/'edge_recovery_pos' are the two fixed-sign scores, 'edge_recovery_max' picks the better sign per graph (an upper bound, but biased upward by the selection itself), and 'edge_recovery_band' fixes one sign per (band, k) cell by majority vote -- one bit of privilege per cell instead of per graph, which is why it is the default and the reported rule. 'edge_recovery' follows 'orientation_rule' and equals 'edge_recovery_band' under the default. 'band_orientation' is the sign the cell voted for and 'orientation_pos_frac' the share of graphs preferring +1. connected/planar/valid fractions are measured on the reconstruction the active rule selected. Rows with k=-1 use every non-trivial eigenpair. Results committed before 2026-09 were single-orientation ('neg') because of a bug in the orientation selection; see results/condition_leakage_*_single_orientation.json.",
+  "dataset": "planar",
+  "split": "val",
+  "seed": 0,
+  "orientation_rule": "band",
+  "n_graphs": 32,
+  "rows": [
+    {
+      "band": "low",
+      "k": -1,
+      "edge_recovery": 1.0,
+      "edge_recovery_neg": 1.0,
+      "edge_recovery_pos": 0.0,
+      "edge_recovery_max": 1.0,
+      "edge_recovery_band": 1.0,
+      "edge_recovery_std": 0.0,
+      "chance_recovery": 0.08813864087301587,
+      "lift_over_chance": 11.345761519521632,
+      "connected_frac": 1.0,
+      "planar_frac": 1.0,
+      "valid_frac": 1.0,
+      "orientation_pos_frac": 0.0,
+      "band_orientation": -1.0,
+      "n_graphs": 32,
+      "orientation_rule": "band"
+    }
+  ]
+}

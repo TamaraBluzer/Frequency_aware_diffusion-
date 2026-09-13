@@ -69,6 +69,11 @@ GGSD already measured low versus high frequencies when eigenpairs are the genera
 representation itself. Our remaining distinction is the controlled *side-channel* experiment,
 including `none`, unrelated-condition, and condition-information controls.
 
+Note on the last of those: the condition-information control is the model-free probe in
+`scripts/condition_leakage.py`, and it had a sign bug that made the `low` band read 0.0%
+recovery when the true figure at k=8 is 72.7%. The design is still the right one; the
+measurement it produced was not. See [LEAKAGE.md](LEAKAGE.md).
+
 ## Gates
 
 The mathematical gate currently passes:
@@ -123,6 +128,15 @@ Artifacts:
 This resolves the Stage 4 dependency problem: a working frequency experiment no longer requires
 an autoencoder, and the low-frequency effect survives the three-seed kill gate.
 
+Two later results qualify how much that gate establishes, and both should be read alongside
+this table rather than after it. First, the k-sweep shows the effect is confined to k=8 --
+neighbouring cutoffs in the same band sit on the baseline -- so this is a single-cell result,
+not a low-frequency gradient ([K_SWEEP.md](K_SWEEP.md)). Second, the `low` k=8 condition
+recovers 72.7% of the target's edges under the corrected leakage probe, so the objection that
+the low band wins by handing over the target is a live confound rather than a refuted one
+([LEAKAGE.md](LEAKAGE.md)). What the gate establishes is that the arms differ, reproducibly and
+by a wide margin. It does not establish *why*.
+
 It does not yet produce valid Planar graphs. All arms have 0% Planar validity, which is consistent
 with ConGress's published 0% Planar V.U.N. Continuous Gaussian edge noise is therefore useful as
 the diagnostic frequency experiment but is not the best final generator. The next architecture
@@ -149,6 +163,13 @@ features, up to 100,000 epochs).
 Categorical diffusion and cycle features improve distributional fidelity, and the low-frequency
 condition becomes even more effective. They do not repair exact planarity at the reduced budget.
 Stage 6.5 therefore remains red: Ratio passes, validity fails.
+
+**Scale matters more than this table suggests.** A later scaled-up pair (10 layers, 500 steps,
+1000 epochs, recovered into `results/discrete_scaled_up_planar.json`) shows the *unconditioned*
+baseline improving roughly 8x to 39.60, with `low, k=8` at 15.40. Conditioning still helps by
+-61%, but the absolute gap narrows from ~220 Ratio points to ~24. Quote the scaled-up pair when
+the question is how much conditioning contributes; the table above is a reduced-budget pilot.
+See [METRIC_SCALES.md](METRIC_SCALES.md#1b-the-notebook-vs-json-mismatch-is-different-configurations-not-overwrites).
 
 The honest next decision is between:
 

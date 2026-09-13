@@ -1,8 +1,8 @@
 # The frequency cutoff gradient
 
 The proposal called a sweep over k the key experiment; the paper reported a single k on a
-single dataset. This is that sweep: 6 bands x 5 values of k, seed 0, 200 epochs, ~3.3 GPU-hours
-on a Colab T4.
+single dataset. This is that sweep: 5 conditioning arms x 5 values of k, plus the unconditioned
+baseline (26 runs), seed 0, 200 epochs, ~3.3 GPU-hours on a Colab T4.
 
 ## Results
 
@@ -36,12 +36,30 @@ show nothing: low k=4 is 316.37 and low k=16 is 270.48, while low k=8 is 116.27.
 Whatever produces the effect is a property of specific (band, k) pairs, not of "low frequency"
 or "high frequency" as such.
 
-Quantitatively, over the 24 non-spike cells the mean Ratio is 327.50 with sd 17.78. The
-unconditioned baseline of 335.74 sits **+0.46 sd inside that spread**, so the flat region
-really is the baseline. The two minima sit **-11.9 sd** (low k=8) and **-17.8 sd**
-(high k=32) below it. Effects that large are not seed noise: no plausible run-to-run variance
-spans twelve to eighteen standard deviations. Seed confirmation is still worth running, but it
-is checking reproducibility, not whether the spikes are real.
+Quantitatively, the 23 **conditioned** non-spike cells span **270.5 to 347.9**, mean 327.2,
+spread 18.5. The unconditioned baseline of 335.74 falls **inside that range**, so the flat
+region simply is the baseline. The two minima fall far outside it: low k=8 at 116.27 is 154.2
+Ratio points below the lowest other cell and 219.5 below the baseline; high k=32 at 10.49 is
+260.0 below the lowest other cell and 325.3 below the baseline. Whether those two are
+reproducible is a question about seeds, and the seed confirmation below answers it directly.
+
+**Two corrections to how this used to be stated.**
+
+*The population.* An earlier version used 24 cells, mean 327.50, spread 17.78. That population
+had the `none` baseline folded into it, which makes "the baseline sits inside the spread"
+circular -- the baseline cannot be its own reference. The 23-cell numbers above exclude it and
+match `results/k_sweep_planar.json`.
+
+*The yardstick.* That earlier version also expressed these distances in standard deviations
+(+0.46 sd for the baseline, -11.9 and -17.8 sd for the minima) and argued that "no plausible
+run-to-run variance spans twelve to eighteen standard deviations." **That framing is withdrawn
+and should not be reintroduced with corrected numbers.** These 23 cells are 23 *different
+treatments*, each run once at seed 0. Their spread mixes between-configuration variation with
+run-to-run noise, and with no replication there is nothing to separate the two. It is not a
+sampling distribution, so a distance measured in its standard deviations is not a significance
+statement -- fixing the population makes the descriptive spread cleaner, but it does not make
+the sigma yardstick valid. Distances belong in Ratio points; evidence that the minima are not
+noise comes from the three-seed re-runs, not from this spread.
 
 ### 3. The controls do their job
 
@@ -53,27 +71,64 @@ signal requires the matching graph's own spectrum, at a particular band and cuto
 exactly what these two arms were added to test, and it is the cleanest evidence in the project
 that the conditioning mechanism is doing something real rather than acting as extra capacity.
 
+These controls separate *information* from *capacity*. They do not separate *frequency* from
+*information* -- "needs the matching graph's own spectrum" is equally what a leakage account
+predicts. See the corrected leakage section below.
+
 ## What it does to the paper's claim
 
 The paper argues low-frequency conditioning helps. The sweep supports a narrower and more
 interesting claim, and complicates the original one:
 
 * The strongest arm is **high**, not low.
-* high k=32 is also the **highest-leakage** arm, recovering 98.5% of true edges from the
+* high k=32 is the **highest-leakage** arm measured, recovering 98.5% of true edges from the
   condition alone (see [LEAKAGE.md](LEAKAGE.md)).
 
-At k=8 leakage and quality are *anti*-correlated -- low leaks 0.0% and wins, high leaks 49.3%
-and loses -- which is what refutes the reviewer's objection. At k=32 they *coincide*. These are
-not contradictory; they point to two different mechanisms:
+**Corrected: low k=8 is not the leak-free minimum this section used to claim.** The earlier
+version of this document said leakage and quality were *anti*-correlated at k=8 -- low leaking
+0.0% and winning, high leaking 49.3% and losing -- and that this refuted the reviewer's
+objection. That 0.0% was a probe bug: `reconstruct_from_condition` never applied the per-graph
+orientation selection its docstring promised, so every low-band cell was measured with the
+ranking sign inverted. Corrected, low k=8 recovers **72.7%** of the target's edges, not 0.0%.
 
-* **low k=8** improves generation while leaking nothing, so it must be supplying coarse global
-  structure the model cannot otherwise infer.
+So at k=8 leakage and quality are ordered the *same* way, not oppositely: low leaks 72.7% and
+wins, high leaks 49.3% and loses, random leaks 19.2% and loses. Both minima now sit high on the
+information axis, and neither can be attributed to frequency on the strength of the probe:
+
 * **high k=32** supplies a near-complete specification of the target spectrum (98.5% edge
   recovery), so it is closer to handing the model the answer than to selecting a frequency.
+  Unchanged -- this cell's number was already the per-graph maximum.
+* **low k=8** improves generation while also leaking heavily. The leakage objection is a live
+  confound for it rather than a refuted one.
 
-The honest framing is that this project found one genuine frequency effect (low k=8) and one
-near-oracle regime (high k=32), and the sweep is what separates them. Reporting high k=32's
-10.49 without its 98.5% leakage would be misleading.
+What keeps low k=8 alive is that leakage does not track quality across this band at all:
+
+| low, k | leakage | Ratio |
+|---|---|---|
+| 2 | 48.1% | 320.92 |
+| 4 | 54.0% | 316.37 |
+| 8 | **72.7%** | **116.27** |
+| 16 | 78.7% | 270.48 |
+| 32 | 47.9% | 317.01 |
+
+Leakage swings 31 points across the band while Ratio sits on the 335.74 baseline at four of the
+five cutoffs. The leakiest cell (k=16) generates at 270.48; the two least leaky (k=2, k=32) are
+indistinguishable from the middle of the band. Only k=8 departs, and it is not the leakiest. A
+model copying edges out of its condition would track that first column, and nothing here does.
+
+That is the surviving argument, and it is *not* sufficient to establish a mechanism: five points
+in one band, one seed, one dataset, and a curve with a single outlier. In particular this probe
+measures *how many* edges leak, not *which*, so it cannot rule out that k=8 leaks a
+differently-useful subset. See
+[LEAKAGE.md](LEAKAGE.md#what-survives-leakage-does-not-track-quality-monotonically).
+
+The honest framing is that the sweep found two isolated minima and the probe places both of
+them high on the information axis. Reporting high k=32's 10.49 without its 98.5% leakage would
+be misleading; so, now, would reporting low k=8's 116.27 as a clean frequency effect.
+
+The corrected leakage grid (5 arms x 5 cutoffs, Planar and SBM) is committed in
+`results/condition_leakage_{planar,sbm}.json` under `"orientation_rule": "max"`. Anything quoted
+from `*_single_orientation.json` is the pre-fix measurement and should not be used.
 
 ## Seed confirmation
 
@@ -101,5 +156,7 @@ and validity diagnoses for these runs are lost. ORCA was verified present before
 started, so these are 5-metric ratios on the same scale as Table 1 (see
 [METRIC_SCALES.md](METRIC_SCALES.md)).
 
-**Not yet run.** The same sweep on SBM, which the proposal also promised. The leakage half of
-that is already done and replicates the Planar pattern.
+**Not yet run.** The generation half of the same sweep on SBM, which the proposal also promised.
+The leakage half has been re-run under the corrected orientation rule and does replicate the
+Planar pattern -- but the *corrected* pattern, in which `low` is a high-leakage band on both
+datasets, not the anti-leakage pattern previously reported ([LEAKAGE.md](LEAKAGE.md#sbm)).

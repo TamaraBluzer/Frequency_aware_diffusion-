@@ -1,0 +1,16 @@
+{
+  "experiment": "validity_reconstruction_stats",
+  "purpose": "Persist the S4.4 reconstruction statistics, which the provenance audit flagged as quoted in the paper but not stored in any committed result file.",
+  "dataset": "planar",
+  "split": "val",
+  "band": "high",
+  "k": 32,
+  "seed": 0,
+  "n_graphs": 32,
+  "orientation": "neg (high band is unanimously negative; see condition_leakage_planar.json orientation_pos_frac=0.0)",
+  "edges_per_graph_mean": 177.6875,
+  "misplaced_edges_mean": 2.6875,
+  "misplaced_edges_max": 6,
+  "zero_misplaced_fraction": 0.03125,
+  "generated_at_utc": "2026-09-13T10:25:23.303578+00:00"
+}

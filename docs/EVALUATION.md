@@ -59,6 +59,16 @@ Planarity is exact (`nx.check_planarity` plus connectivity). Because that conjun
 *which* condition failed, `diagnose_validity` in `scripts/report_breakdown.py` reports
 connectivity and planarity separately alongside component counts and the 3n-6 edge bound.
 
+**Validity is not a graded quality measure on Planar, and must not be read as one alongside
+Ratio.** A Planar validation graph at n=64 carries ~177 edges against the 3n-6 = 186 bound, so
+it is nearly maximally triangulated and almost any misplaced edge creates a K5 or K3,3 minor.
+Measured consequence: among reconstructions recovering 98.5% of the true edges, the fraction
+that are planar (3.1%) is exactly the fraction with *zero* misplaced edges. Validity on this
+dataset is therefore close to a binary test of exactness, which is why an arm can improve Ratio
+2.3x while pinned at 0%, and why ranking arms by validity ranks them by how nearly they
+reproduced their target rather than by generation quality. See
+[ZERO_VALIDITY.md](ZERO_VALIDITY.md).
+
 **SBM validity is a spectral-clustering stand-in**, not graph-tool's Bayesian blockmodel test:
 90.6% of real SBM validation graphs pass and 0% of density-matched Erdos-Renyi graphs do.
 Report it as a deviation; never compare it directly to SPECTRE's SBM numbers. See

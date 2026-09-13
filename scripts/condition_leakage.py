@@ -9,15 +9,68 @@ The scored quantity is `U_k diag(lambda_k) U_k^T`, which is exactly the pair cha
 `build_condition_tensors` hands the denoiser -- not the raw eigenvectors. A probe on
 anything else would measure a signal the model never receives.
 
-Two privileged inputs are used deliberately, and both inflate recovery:
+What the probe actually does
+----------------------------
+For one graph it ranks the `n(n-1)/2` off-diagonal entries of the pair channel and keeps the
+`m` extreme ones, where `m` is the target's true edge count. Which end is "extreme" is a
+sign convention, and it is not the same for every band: a low band's pair channel tracks the
+normalized Laplacian's off-diagonal (`-1/sqrt(d_i d_j)` on an edge), so edges are the *most
+negative* entries, while other bands put edges at the other end. The probe therefore builds
+*both* reconstructions per graph -- the `m` most negative entries (orientation `-1.0`) and
+the `m` most positive (orientation `+1.0`) -- and scores each against the true edge set.
 
-  * the true edge count `m`, used to threshold the scored pairs, and
-  * the true node count, implicit in the condition's shape.
+How the sign is resolved (`--orientation-rule`)
+-----------------------------------------------
+Empirically the sign is a property of the *band*, not of the graph: `low` prefers `+1.0` and
+`high` prefers `-1.0` unanimously across all 32 graphs, at every k, on both datasets
+(`orientation_pos_frac` is exactly 1.0 and 0.0 respectively). So the sign can be fixed per
+cell instead of per graph:
 
-That is the point. The probe is an upper bound on what a perfect decoder could extract
-from the side channel, so a *low* number is informative (the band cannot leak much) while
-a high number means the band hands over the answer. Recovery is compared against a
+  * ``band`` (default, the reported rule) -- each (band, k) cell votes, the majority sign is
+    applied to every graph in the cell, and each graph's recovery is measured under that one
+    fixed sign. Exactly **one bit** of privileged information per cell.
+  * ``max`` -- each graph keeps whichever sign suits it: `1` bit per *graph*. This is a real
+    upper bound but it has a selection bias, because taking a max over two noisy estimates
+    lifts even a pure-noise condition above chance (the `gaussian` arm rises from ~1.0x to
+    ~1.1x under it). Kept as the documented conservative bound.
+  * ``neg`` / ``pos`` -- force one sign globally. `neg` reproduces the pre-fix numbers.
+
+`band` and `max` agree to the digit on `low` and `high`, because those cells are unanimous;
+they differ only on the arms where the sign really is a coin flip, which is precisely where
+`max`'s bias lives. Every row reports all four means (`edge_recovery_neg`,
+`edge_recovery_pos`, `edge_recovery_max`, `edge_recovery_band`) whichever rule is active, so
+the choice is auditable without rerunning anything.
+
+Privileged inputs, all of which inflate recovery:
+
+  * the true edge count `m`, used to threshold the scored pairs,
+  * the true node count, implicit in the condition's shape, and
+  * the true edge set, used to resolve the sign -- one bit per cell under `band`, one bit
+    per graph under `max`.
+
+What a number does and does not mean
+------------------------------------
+A *high* score is conclusive: the band demonstrably hands over the answer, since a decoder
+this crude already extracts it. A *low* score is much weaker evidence. It bounds only this
+decoder family -- rank the pair channel, threshold at `m`, under one of two global signs --
+and a band could still encode the edge set in a form this rule cannot read (a nonlinear,
+per-node, or degree-normalized decoding, for instance). Earlier versions of this docstring
+claimed a low score was "strong evidence a band cannot leak"; that inference was never
+licensed by the measurement and is not made here. Recovery is compared against a
 degree-preserving random baseline, since dense graphs score well by chance alone.
+
+Provenance of the committed numbers
+-----------------------------------
+The orientation comparison above was broken in every result committed before this fix. The
+selection loop compared `graph.number_of_edges()`, which equals the requested `m` for both
+orientations by construction, so the strict `>` always kept the first iteration and the
+probe silently ran at orientation `-1.0` only. Every previously committed
+`condition_leakage_*.json` number is therefore single-orientation, and the frozen copies in
+`results/condition_leakage_*_single_orientation.json` preserve them. They are reproducible
+from this script with `--orientation-rule neg`, which is what
+`tests/test_condition_leakage.py` asserts. The correction matters most for the `low` band,
+whose edges sit at the *positive* end of its pair channel: low k=16 on Planar moves from
+0.0% to 78.7%.
 """
 
 from __future__ import annotations
@@ -30,58 +83,187 @@ import networkx as nx
 import numpy as np
 
 from fald.data.conditioning import _derangement
-from fald.data.spectral import cached_eigendecompositions, select_band
+from fald.data.spectral import (
+    cached_eigendecompositions,
+    count_trivial_eigenpairs,
+    select_band,
+)
 from fald.data.spectre import load_splits
 from fald.eval.validity import is_planar
 from fald.paths import results_dir
+
+# How the pair channel's sign is resolved. "band" is the primary rule and the default; the
+# others are diagnostics, and "neg" reproduces every number committed before the orientation
+# bug was fixed. See the module docstring for why "band" is preferred over "max".
+ORIENTATION_RULES = ("band", "max", "neg", "pos")
+
+# Rules that a single graph can resolve on its own. "band" is a property of a whole
+# (band, k) cell, so it is resolved in `evaluate_band`, not in `reconstruct_from_condition`.
+PER_GRAPH_RULES = ("max", "neg", "pos")
+
+NEGATIVE, POSITIVE = -1.0, 1.0
 
 
 @dataclass
 class LeakageRow:
     band: str
     k: int
+    # `edge_recovery` is the headline number and follows `orientation_rule`: under the default
+    # "band" rule it is exactly `edge_recovery_band`. The name is load-bearing:
+    # scripts/make_paper_figures.py and scripts/analyze_sweep.py both read it.
     edge_recovery: float
+    # All four rules' means are reported on every row regardless of which one is active, so a
+    # reader can check the headline against the alternatives without rerunning anything.
+    edge_recovery_neg: float
+    edge_recovery_pos: float
+    edge_recovery_max: float
+    edge_recovery_band: float
     edge_recovery_std: float
     chance_recovery: float
     lift_over_chance: float
     connected_frac: float
     planar_frac: float
     valid_frac: float
+    # Fraction of graphs where orientation +1 strictly beat orientation -1, i.e. where the
+    # per-graph max is not the old single-orientation answer. 0.0 or 1.0 means the band has a
+    # consistent sign; anything between means the sign is graph-dependent.
+    orientation_pos_frac: float
+    # The sign the majority vote picked for this cell, which the "band" rule applies to every
+    # graph. +1.0 or -1.0.
+    band_orientation: float
     n_graphs: int
+    orientation_rule: str = "band"
+
+
+@dataclass
+class Reconstruction:
+    """One graph's reconstruction under *both* sign orientations.
+
+    Both are kept because the cell-level "band" rule cannot be resolved until every graph in
+    the cell has been scored, and the connectivity and planarity fractions must then be
+    measured on whichever reconstruction that vote selects.
+    """
+
+    graphs: dict[float, nx.Graph]
+    recoveries: dict[float, float]
+    orientation: float  # the sign the per-graph rule picked
+
+    @property
+    def graph(self) -> nx.Graph:
+        return self.graphs[self.orientation]
+
+    @property
+    def recovery(self) -> float:
+        return self.recoveries[self.orientation]
+
+    @property
+    def recovery_neg(self) -> float:
+        return self.recoveries[NEGATIVE]
+
+    @property
+    def recovery_pos(self) -> float:
+        return self.recoveries[POSITIVE]
+
+    @property
+    def recovery_max(self) -> float:
+        return max(self.recovery_neg, self.recovery_pos)
+
+    def at(self, orientation: float) -> tuple[nx.Graph, float]:
+        """The reconstruction and recovery at one fixed sign, ignoring the per-graph rule."""
+        return self.graphs[orientation], self.recoveries[orientation]
 
 
 def _upper_triangle_indices(n: int) -> tuple[np.ndarray, np.ndarray]:
     return np.triu_indices(n, k=1)
 
 
-def reconstruct_from_condition(
-    pair_channel: np.ndarray, n_edges: int
+def _threshold_pairs(
+    rows: np.ndarray,
+    cols: np.ndarray,
+    scores: np.ndarray,
+    orientation: float,
+    n_edges: int,
+    n_nodes: int,
 ) -> nx.Graph:
-    """Keep the `n_edges` highest-scoring off-diagonal pairs.
+    """Keep the `n_edges` pairs most extreme in the direction `orientation`."""
+    ranked = np.argsort(orientation * scores)[::-1][:n_edges]
+    graph = nx.Graph()
+    graph.add_nodes_from(range(n_nodes))
+    graph.add_edges_from(zip(rows[ranked], cols[ranked]))
+    return graph
 
-    The pair channel approximates `-A` up to scale on the off-diagonal for a low band (the
-    normalized Laplacian's off-diagonal is `-1/sqrt(d_i d_j)` where an edge exists), so the
-    score is negated before ranking. Sign is resolved empirically per graph rather than
-    assumed: whichever orientation recovers more edges is used, which again biases the
-    probe upward and keeps it an upper bound.
+
+def _recovery(true_edges: set[frozenset], graph: nx.Graph) -> float:
+    rebuilt = set(map(frozenset, graph.edges()))
+    return len(true_edges & rebuilt) / max(len(true_edges), 1)
+
+
+def reconstruct_from_condition(
+    pair_channel: np.ndarray,
+    true_edges: set[frozenset],
+    rule: str = "max",
+) -> Reconstruction:
+    """Keep the `m` highest-scoring off-diagonal pairs, with the sign resolved per graph.
+
+    `m` is `len(true_edges)`. Both orientations are always built and scored *against the true
+    edge set*, so `recovery_neg` and `recovery_pos` are always available; `rule` decides only
+    which one this graph reports as `orientation` (and therefore as `graph` and `recovery`):
+
+      * ``"max"``  -- whichever orientation recovers more of the true edges, ties to `-1.0`.
+                      The conservative upper bound: it spends one bit of privileged
+                      information *per graph*.
+      * ``"neg"``  -- force orientation `-1.0`, reproducing the pre-fix committed numbers.
+      * ``"pos"``  -- force orientation `+1.0`.
+
+    The primary ``"band"`` rule is deliberately absent here: it is a property of a whole
+    (band, k) cell and is resolved by `evaluate_band`, which votes across graphs and then
+    calls `Reconstruction.at` with the winning sign.
+
+    Scoring against the true edge set is the whole point of the signature: the previous
+    version compared `graph.number_of_edges()` between the two orientations, which is `m`
+    either way, so no selection ever happened.
     """
+    if rule not in PER_GRAPH_RULES:
+        raise ValueError(
+            f"unknown per-graph orientation rule {rule!r}; expected one of {PER_GRAPH_RULES}. "
+            "The 'band' rule is resolved per (band, k) cell by evaluate_band."
+        )
+
     n = pair_channel.shape[0]
     rows, cols = _upper_triangle_indices(n)
     scores = pair_channel[rows, cols]
+    n_edges = len(true_edges)
 
-    best_graph = None
-    best_hits = -1
-    for orientation in (-1.0, 1.0):
-        ranked = np.argsort(orientation * scores)[::-1][:n_edges]
-        graph = nx.Graph()
-        graph.add_nodes_from(range(n))
-        graph.add_edges_from(zip(rows[ranked], cols[ranked]))
-        hits = graph.number_of_edges()
-        if hits > best_hits:
-            best_hits = hits
-            best_graph = graph
-    assert best_graph is not None
-    return best_graph
+    built = {
+        orientation: _threshold_pairs(rows, cols, scores, orientation, n_edges, n)
+        for orientation in (NEGATIVE, POSITIVE)
+    }
+    recoveries = {
+        orientation: _recovery(true_edges, graph) for orientation, graph in built.items()
+    }
+
+    if rule == "neg":
+        chosen = NEGATIVE
+    elif rule == "pos":
+        chosen = POSITIVE
+    else:
+        chosen = POSITIVE if recoveries[POSITIVE] > recoveries[NEGATIVE] else NEGATIVE
+
+    return Reconstruction(graphs=built, recoveries=recoveries, orientation=chosen)
+
+
+def band_orientation(reconstructions: list[Reconstruction]) -> float:
+    """The sign a majority of graphs in one (band, k) cell prefer. Ties keep `-1.0`.
+
+    This is the whole of the privileged information the "band" rule spends: one bit per cell,
+    rather than one bit per graph. It is well defined because the sign turns out to be a
+    property of the band and not of the graph -- `low` votes `+1.0` unanimously and `high`
+    votes `-1.0` unanimously, on every k and both datasets.
+    """
+    if not reconstructions:
+        return NEGATIVE
+    votes = sum(1 for r in reconstructions if r.recovery_pos > r.recovery_neg)
+    return POSITIVE if votes * 2 > len(reconstructions) else NEGATIVE
 
 
 def _chance_recovery(graph: nx.Graph) -> float:
@@ -92,13 +274,39 @@ def _chance_recovery(graph: nx.Graph) -> float:
     return m / total_pairs if total_pairs else 0.0
 
 
+def _condition_for(
+    all_values: list[np.ndarray],
+    all_vectors: list[np.ndarray],
+    donor: int,
+    band: str,
+    k: int | None,
+    rng: np.random.Generator,
+):
+    """`k=None` means "every non-trivial eigenpair of this graph" (the full-spectrum probe)."""
+    values, vectors = all_values[donor], all_vectors[donor]
+    if k is None:
+        n_trivial = max(count_trivial_eigenpairs(values), 1)
+        k = int(vectors.shape[0]) - n_trivial
+    return select_band(values, vectors, band, k, rng=rng)
+
+
 def evaluate_band(
     graphs: list[nx.Graph],
     band: str,
-    k: int,
+    k: int | None,
     seed: int,
     cache_tag: str,
+    rule: str = "band",
 ) -> LeakageRow:
+    """Score one (band, k) cell.
+
+    Two passes, because the primary "band" rule is not resolvable graph by graph: every graph
+    is reconstructed under both signs first, the cell then votes on a single sign, and the
+    reported recovery, connectivity and planarity all come from that one orientation.
+    """
+    if rule not in ORIENTATION_RULES:
+        raise ValueError(f"unknown orientation rule {rule!r}; expected one of {ORIENTATION_RULES}")
+
     all_values, all_vectors = cached_eigendecompositions(graphs, tag=cache_tag)
 
     # 'shuffled' is a donor assignment rather than an eigenpair rule: each graph gets another
@@ -111,41 +319,81 @@ def evaluate_band(
     else:
         donors = np.arange(len(graphs))
 
-    recoveries: list[float] = []
+    # --- pass 1: reconstruct every graph under both orientations ------------------------
+    rebuilt: list[Reconstruction] = []
     chances: list[float] = []
-    connected: list[bool] = []
-    planar: list[bool] = []
-    valid: list[bool] = []
-
     for index, graph in enumerate(graphs):
         donor = int(donors[index])
         rng = np.random.default_rng(seed + index)
-        condition = select_band(all_values[donor], all_vectors[donor], band, k, rng=rng)
+        condition = _condition_for(all_values, all_vectors, donor, band, k, rng)
         pair_channel = condition.rank_one_pair_channel()
 
         true_edges = set(map(frozenset, graph.edges()))
-        rebuilt = reconstruct_from_condition(pair_channel, len(true_edges))
-        rebuilt_edges = set(map(frozenset, rebuilt.edges()))
-
-        recoveries.append(len(true_edges & rebuilt_edges) / max(len(true_edges), 1))
+        # "max" here only fills in the per-graph `orientation`; the active rule is applied below.
+        rebuilt.append(reconstruct_from_condition(pair_channel, true_edges, rule="max"))
         chances.append(_chance_recovery(graph))
-        connected.append(nx.is_connected(rebuilt))
-        planar.append(nx.check_planarity(rebuilt)[0])
-        valid.append(is_planar(rebuilt))
 
-    mean_recovery = float(np.mean(recoveries))
+    neg = [r.recovery_neg for r in rebuilt]
+    pos = [r.recovery_pos for r in rebuilt]
+    voted = band_orientation(rebuilt)
+
+    # --- pass 2: apply the active rule --------------------------------------------------
+    if rule == "band":
+        orientations = [voted] * len(rebuilt)
+    elif rule == "neg":
+        orientations = [NEGATIVE] * len(rebuilt)
+    elif rule == "pos":
+        orientations = [POSITIVE] * len(rebuilt)
+    else:  # "max": each graph keeps the sign that suits it
+        orientations = [r.orientation for r in rebuilt]
+
+    selected: list[float] = []
+    connected: list[bool] = []
+    planar: list[bool] = []
+    valid: list[bool] = []
+    for reconstruction, orientation in zip(rebuilt, orientations):
+        graph, recovery = reconstruction.at(orientation)
+        selected.append(recovery)
+        # Structure is measured on the reconstruction the rule actually selected. At the two
+        # orientations the bands do not merely flip a sign -- they produce different graphs --
+        # so these fractions are not transferable between rules.
+        connected.append(nx.is_connected(graph))
+        planar.append(nx.check_planarity(graph)[0])
+        valid.append(is_planar(graph))
+
+    mean_selected = float(np.mean(selected))
     mean_chance = float(np.mean(chances))
     return LeakageRow(
         band=reported_band,
-        k=k,
-        edge_recovery=mean_recovery,
-        edge_recovery_std=float(np.std(recoveries)),
+        k=-1 if k is None else k,
+        edge_recovery=mean_selected,
+        edge_recovery_neg=float(np.mean(neg)),
+        edge_recovery_pos=float(np.mean(pos)),
+        edge_recovery_max=float(np.mean(np.maximum(neg, pos))),
+        edge_recovery_band=float(np.mean(pos if voted == POSITIVE else neg)),
+        edge_recovery_std=float(np.std(selected)),
         chance_recovery=mean_chance,
-        lift_over_chance=mean_recovery / mean_chance if mean_chance else float("nan"),
+        lift_over_chance=mean_selected / mean_chance if mean_chance else float("nan"),
         connected_frac=float(np.mean(connected)),
         planar_frac=float(np.mean(planar)),
         valid_frac=float(np.mean(valid)),
+        orientation_pos_frac=float(np.mean([r.recovery_pos > r.recovery_neg for r in rebuilt])),
+        band_orientation=voted,
         n_graphs=len(graphs),
+        orientation_rule=rule,
+    )
+
+
+def _print_row(row: LeakageRow) -> None:
+    label = "full" if row.k < 0 else f"k={row.k}"
+    sign = "+" if row.band_orientation > 0 else "-"
+    print(
+        f"{row.band:>9} {label:<7} recovery={row.edge_recovery:6.1%} "
+        f"(neg {row.edge_recovery_neg:6.1%} / pos {row.edge_recovery_pos:6.1%} / "
+        f"max {row.edge_recovery_max:6.1%}, vote {sign}1 at {row.orientation_pos_frac:4.0%} pos, "
+        f"chance {row.chance_recovery:5.1%}, lift {row.lift_over_chance:5.2f}x)  "
+        f"connected={row.connected_frac:5.1%} planar={row.planar_frac:5.1%} "
+        f"valid={row.valid_frac:5.1%}"
     )
 
 
@@ -156,7 +404,28 @@ def main() -> None:
     parser.add_argument(
         "--bands", nargs="+", default=["low", "high", "random", "gaussian", "shuffled"]
     )
-    parser.add_argument("--k-values", nargs="+", type=int, default=[2, 4, 8, 16, 32])
+    # nargs="*" so `--k-values` with no values is legal: that is how the full-spectrum
+    # sanity check is run on its own, without any fixed-k rows.
+    parser.add_argument("--k-values", nargs="*", type=int, default=[2, 4, 8, 16, 32])
+    parser.add_argument(
+        "--orientation-rule",
+        default="band",
+        choices=ORIENTATION_RULES,
+        help=(
+            "how the pair channel's sign is resolved. 'band' (default) votes once per "
+            "(band, k) cell and applies that sign to every graph; 'max' picks per graph and "
+            "is the conservative upper bound; 'neg' forces the single orientation every "
+            "pre-fix result was silently computed at."
+        ),
+    )
+    parser.add_argument(
+        "--full-spectrum",
+        action="store_true",
+        help=(
+            "also probe every non-trivial eigenpair of each graph (reported as k=-1). "
+            "U diag(lambda) U^T is then exactly L_norm, so recovery must be 100%%."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
@@ -171,24 +440,39 @@ def main() -> None:
             max_k = min(g.number_of_nodes() for g in graphs) - 1
             if k > max_k:
                 continue
-            row = evaluate_band(graphs, band, k, args.seed, cache_tag)
+            row = evaluate_band(graphs, band, k, args.seed, cache_tag, rule=args.orientation_rule)
             rows.append(row)
-            print(
-                f"{band:>9} k={k:<3} recovery={row.edge_recovery:6.1%} "
-                f"(chance {row.chance_recovery:5.1%}, lift {row.lift_over_chance:5.2f}x)  "
-                f"connected={row.connected_frac:5.1%} planar={row.planar_frac:5.1%} "
-                f"valid={row.valid_frac:5.1%}"
-            )
+            _print_row(row)
+        if args.full_spectrum and band in ("low", "high", "random"):
+            # low/high/random all collapse to the same selection when k covers the whole
+            # non-trivial spectrum, so this is one sanity check, not three.
+            row = evaluate_band(graphs, band, None, args.seed, cache_tag, rule=args.orientation_rule)
+            rows.append(row)
+            _print_row(row)
 
     payload = {
         "experiment": "condition_leakage",
         "description": (
-            "Model-free edge recovery from the spectral condition. Uses the true edge count "
-            "to threshold, so values are an upper bound on extractable information."
+            "Model-free edge recovery from the spectral condition. Uses the true edge count to "
+            "threshold the scored pairs and the true edge set to resolve the pair channel's "
+            "sign, so values upper-bound what this rank-and-threshold decoder can extract. "
+            "'edge_recovery_neg'/'edge_recovery_pos' are the two fixed-sign scores, "
+            "'edge_recovery_max' picks the better sign per graph (an upper bound, but biased "
+            "upward by the selection itself), and 'edge_recovery_band' fixes one sign per "
+            "(band, k) cell by majority vote -- one bit of privilege per cell instead of per "
+            "graph, which is why it is the default and the reported rule. 'edge_recovery' "
+            "follows 'orientation_rule' and equals 'edge_recovery_band' under the default. "
+            "'band_orientation' is the sign the cell voted for and 'orientation_pos_frac' the "
+            "share of graphs preferring +1. connected/planar/valid fractions are measured on "
+            "the reconstruction the active rule selected. Rows with k=-1 use every non-trivial "
+            "eigenpair. Results committed before 2026-09 were single-orientation ('neg') "
+            "because of a bug in the orientation selection; see "
+            "results/condition_leakage_*_single_orientation.json."
         ),
         "dataset": args.dataset,
         "split": args.split,
         "seed": args.seed,
+        "orientation_rule": args.orientation_rule,
         "n_graphs": len(graphs),
         "rows": [asdict(row) for row in rows],
     }
