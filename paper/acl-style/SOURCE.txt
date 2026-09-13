@@ -1,0 +1,6 @@
+acl.sty and acl_natbib.bst are the official *ACL style files, downloaded unmodified from
+https://github.com/acl-org/acl-style-files (repository root) on 2026-09-13.
+
+They are vendored here only so that `main.pdf` is reproducible from a clean clone with a
+single command. The Overleaf ACL 2023 template ships its own copy (named acl2023.sty);
+main.tex picks up whichever is present via \IfFileExists.
