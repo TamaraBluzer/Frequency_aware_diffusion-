@@ -40,15 +40,17 @@ against an Erd\H{o}s--R\'enyi reference of $161.67$, with \texttt{low} $k{=}8$ f
 outright). On SPECTRE's Planar benchmark, a sweep of five conditioning arms over five cutoffs (one
 run per cell) shows no consistent monotonic trend across the tested cutoffs: 23 of 25 cells sit
 inside the spread of the unconditioned baseline, and the
-effect is confined to two isolated minima --- and the probe finds that both of them leak.
+effect is confined to four cells, measured against the unconditioned arm's own three-seed
+spread, with two large ones dominating --- and the probe finds that both of those leak.
 \texttt{low} $k{=}8$ improves the MMD Ratio $2.3\times$ while recovering $72.7\%$ of the target's
 edges; \texttt{high} $k{=}32$ improves it $29.7\times$ while recovering $98.5\%$, near enough to a
-near-oracle regime to be read as one. In the one arm whose generated graphs survive, those graphs
-retrieve their own conditioning graph first in all 32 cases (edge $F_1$ $0.65$ against $0.09$ for
-mismatched pairs), so the advantage is at least partly reconstruction of the evaluation set. We
+near-oracle regime to be read as one. Across all twelve saved sample sets, both conditioned bands
+retrieve their own conditioning graph first in all 32 cases in every seed, where the unconditioned
+control sits at chance, so the advantage is at least partly reconstruction of the evaluation set. We
 therefore cannot attribute either minimum to frequency content. What we can still exclude is
-recovery as a \emph{predictor} of quality: it rises smoothly with $k$ in both bands while quality
-stays flat with two isolated spikes, so it does not locate the minima it now implicates.
+recovery as a \emph{predictor} of quality: within the low band it peaks at $k{=}16$, one cutoff
+past the minimum, and falls $30.9$ points by $k{=}32$, so it does not locate the minimum it now
+implicates.
 \end{abstract}
 
 \section{Introduction}
@@ -249,7 +251,7 @@ arm, mean $\pm$ std over seeds. Validation loss is metric-free, and it agrees wi
 \label{tab:k8}
 \end{table}
 
-\subsection{The sweep: two isolated minima, no monotonic trend}
+\subsection{The sweep: four cells move, no monotonic trend}
 \label{sec:sweep}
 
 \begin{figure*}[t]
@@ -264,15 +266,19 @@ leakage.}
 \end{figure*}
 
 SDMG's intuition implies quality should vary smoothly with how much of which end of the spectrum
-is supplied. In this sweep it does not (Figure~\ref{fig:sweep}(a)). The 23 conditioned cells that
-are not one of the two minima span $270.5$ to $347.9$, with mean $327.2$ and a spread of $18.5$, and
-the unconditioned baseline of $335.7$ falls inside that range: the flat region simply is the
-baseline. The two minima fall far outside it --- $116.3$ for \texttt{low}, $k{=}8$ and $10.5$ for
-\texttt{high}, $k{=}32$, against a best-of-the-rest of $270.5$ --- while their neighbours in the same
-band show nothing: \texttt{low} is $316.4$ at $k{=}4$ and $270.5$ at $k{=}16$. Two cautions on how to read that spread. Each cell is a single run at seed 0, so the sweep
-is a description of 25 configurations rather than an estimate of any one of them; and the $18.5$ is
-the spread \emph{across different configurations}, not a sampling distribution, so we quote
-distances from it in Ratio points and never as standard deviations or significance.
+is supplied. In this sweep it does not (Figure~\ref{fig:sweep}(a)). Each cell is a single run at
+seed 0, so the sweep describes 25 configurations rather than estimating any one of them; the one
+replicated quantity we can measure a cell against is the \texttt{none} arm's own three-seed
+spread, $330.1 \pm 7.5$. Read that way, \textbf{four cells separate from baseline by more than
+$3$ standard deviations, and all fifteen control cells stay within $1.9$}. Two of the four are
+large --- \texttt{high}, $k{=}32$ at $10.5$ ($42$ sd below) and \texttt{low}, $k{=}8$ at $116.3$
+($28$ sd) --- and two are modest and sit one cutoff away from them: \texttt{low}, $k{=}16$ at
+$270.5$ ($7.9$ sd) and \texttt{high}, $k{=}16$ at $281.2$ ($6.5$ sd). Everything else, conditioned
+or not, lands on the baseline. So the surface is not two isolated spikes on a flat field: it is
+two large effects, each with a smaller one beside it, and a control set that never moves. We
+report the earlier framing's spread for continuity --- the 21 non-separating cells span $316.4$ to
+$347.9$ --- but that spread runs \emph{across different configurations} and is not a sampling
+distribution, so we do not quote distances from it.
 
 Both minima reproduce across three seeds (Table~\ref{tab:spikes}): \texttt{high}, $k{=}32$ is very
 stable (std $0.58$ on a mean of $11.11$) and the only arm in the sweep that produced a valid
@@ -340,11 +346,12 @@ the probe (\S\ref{sec:discussion}), and we withdraw it. The objection stands as 
 and nothing we ran excludes it.
 
 What Table~\ref{tab:leakage} does exclude is leakage as a \emph{locator} of the two minima
-(Figure~\ref{fig:sweep}(b)): recovery climbs smoothly with $k$ in both bands, while quality is flat
-with two isolated spikes. Low-band recovery peaks not at the minimum but at $k{=}16$, which
+(Figure~\ref{fig:sweep}(b)): recovery climbs monotonically with $k$ in the high band but peaks at
+$k{=}16$ in the low band and falls $30.9$ points by $k{=}32$, while quality is flat
+except at four cells. Low-band recovery peaks not at the minimum but at $k{=}16$, which
 recovers more ($78.7\%$ against $72.7\%$) and generates $2.3\times$ worse ($270.5$ against
-$116.3$); in the high band, $76.7\%$ recovery at $k{=}16$ sits at Ratio $281.2$, inside the flat
-region, while $98.5\%$ at $k{=}32$ collapses to $10.5$. Recovery is therefore not sufficient to
+$116.3$); in the high band, $76.7\%$ recovery at $k{=}16$ yields only a $6.5$ sd effect at $281.2$
+while $98.5\%$ at $k{=}32$ collapses to $10.5$. Recovery is therefore not sufficient to
 predict quality, and reading the $k{=}8$ minimum purely as leakage does not fit the shape of the
 data. That is the honest residual: a confound we can no longer exclude, which nevertheless fails to
 explain where the minima are. This defence is Planar-only: it rests on the non-monotone low-band
@@ -360,33 +367,43 @@ construction from 2D point sets --- but the Planar low band's non-monotone shape
 there, which is the second reason the paragraph above is a one-dataset argument.
 
 \paragraph{The samples themselves reconstruct their conditioning graph.} The probe bounds what the
-condition \emph{carries}; it does not say what the model \emph{did} with it. For the one arm whose
-generated graphs we still hold --- \texttt{low}, $k{=}8$, seed 0 --- we can ask directly, by
-comparing each sample against the validation graph whose spectrum conditioned it. The answer is
-unambiguous. Matched pairs share edge $F_1 = 0.653$ against $0.088$ for mismatched pairs (Jaccard
-$0.485$ against $0.046$; $115.4$ of ${\sim}177$ edges in common against $15.6$), a gap of $0.565$
-with a bootstrap 95\% interval of $[0.556, 0.574]$ over the 32 graphs. Scoring every sample against
-every candidate retrieves its own conditioning graph first \emph{in all 32 cases}, mean rank $1.0$
-of $32$ against a chance rate of $3.1\%$. Each sample is individually identifiable as a partial copy
-of the specific held-out graph it was conditioned on, and that graph is in the reference set the
-sample is then scored against. This is direct evidence for the confound, not merely an inability to
-exclude it: the arm's MMD advantage is at least partly reconstruction of the evaluation data. One
-measurement points the other way --- a sample's own low band is no closer to its conditioning
-spectrum than to any other graph's (retrieval at $3.1\%$, exactly chance) --- so the copying is of
-edges, not of the conditioned quantity, and we cannot say by what route. We stress the coverage
-limit: this is 1 arm of 12, the remaining sample files are lost (\S\ref{sec:discussion}), and
-without them we cannot ask whether $k{=}16$, which recovers more yet generates worse, reconstructs
-less. That comparison is the one that would settle the section, and we cannot run it.
+condition \emph{carries}; it does not say what the model \emph{did} with it. We can ask directly,
+by comparing each generated graph against the validation graph whose spectrum conditioned it,
+across all twelve saved sample sets (four bands $\times$ three seeds, all at $k{=}8$). The
+conditioned arms copy, and the controls do not. \texttt{low} reaches matched edge $F_1$ of
+$0.613$--$0.622$ against $0.088$ for mismatched pairs, and \texttt{high} $0.332$--$0.342$ against
+$0.086$; both retrieve their own conditioning graph \emph{first in all 32 cases, in every seed},
+against a chance rate of $3.1\%$. The \texttt{none} arm --- same pairing, same code, an all-zero
+condition --- sits exactly at chance, with matched $F_1$ of $0.082$--$0.090$ indistinguishable from
+its mismatched $0.084$--$0.087$ and mean retrieval rank $15.3$--$17.5$ of $32$ against an expected
+$16.5$. \texttt{random} lands between, at $19$--$22\%$ top-1. So the copying is caused by the
+condition rather than by the pairing, and its magnitude tracks the band's measured leakage:
+\texttt{low} copies roughly twice as much as \texttt{high} at this cutoff, just as it recovers
+$72.7\%$ against $49.3\%$ in Table~\ref{tab:leakage}. Each conditioned sample is individually
+identifiable as a partial copy of the specific held-out graph it was conditioned on, and that graph
+is in the reference set the sample is then scored against. This is direct evidence for the
+confound, not merely an inability to exclude it.
+
+Two caveats bound it. The sample files are not committed --- \texttt{results/*.pt} is
+\texttt{gitignored} --- and a second copy of \texttt{low}, $k{=}8$, seed 0 gives matched $F_1$
+$0.653$ rather than $0.622$, so these digits are not reproducible from a clean clone even though
+the conclusion replicates across every copy and seed we have. And every saved file is at $k{=}8$,
+so the comparison that would settle the section --- whether $k{=}16$, which recovers more yet
+generates worse, also copies more --- remains unanswerable.
 
 \subsection{Why validity is zero everywhere}
 \label{sec:validity}
 Validity is \emph{connected AND planar}, so the universal $0\%$ cannot say which half failed. We
-separate them two ways. On the generated graphs themselves --- again only \texttt{low}, $k{=}8$,
-seed 0, the one saved arm --- $46.9\%$ are connected (bootstrap 95\% interval $[31.3\%, 62.5\%]$
-over 32 graphs, mean $1.66$ components) and $0.0\%$ are planar, so planarity is the binding
-constraint and connectivity is roughly a coin flip. Only $9.4\%$ exceed the $3n-6$ edge bound, so
-these are not merely too dense: they are the right size and the wrong shape. The probe's
-reconstructions separate the two halves the same way across the whole grid.
+separate them two ways. On the generated graphs themselves, across the twelve saved sample sets,
+connectivity is common and planarity never happens: \texttt{low}, $k{=}8$ is $65.6$--$68.8\%$
+connected over its three seeds, \texttt{high} $81.2$--$93.8\%$, and the \texttt{none} and
+\texttt{random} arms $87.5$--$96.9\%$, while \emph{every} arm is $0.0\%$ planar. Planarity is the
+binding constraint, and conditioning makes connectivity worse rather than better. These graphs also
+carry about the right number of edges --- $176.5$ on average against the target class's $177.7$ ---
+so they are not merely too dense: they are the right size and the wrong shape. (We quote ranges
+rather than a mean with an interval because the sample files are not committed and two copies of
+the same arm disagree; see \S\ref{sec:leakage}.) The probe's reconstructions separate the two
+halves the same way across the whole grid.
 Connectivity is easy, and cheap in information: by $k{=}32$ every reconstruction is connected in
 both bands, and even \texttt{shuffled} --- another graph's low band, at the noise floor --- is
 $71.9\%$ connected at $k{=}16$ and $100\%$ at $k{=}32$. Planarity essentially never is. Near-complete
@@ -454,12 +471,16 @@ does not support the comparison we first drew from it. Generated graphs are neve
 their own structure: each one inherits, positionally, the community count of the real template it
 was sampled alongside. For the conditioned arm that is at least defensible, since the template's
 spectrum is the condition. For the unconditioned arm it is not. That arm samples with
-\texttt{band}${=}$\texttt{none}, an all-zero condition, so the only thing it takes from its template
-is the node count; the generated graph is statistically independent of the label it is handed. At
-the 1:1 augmentation ratio used here, half of that arm's training set is graphs whose labels carry
-no information about them, and that alone is enough to produce the drop we observed. The result is
-a fact about label noise, not about unconditioned sample quality, and we withdraw the latter
-reading.
+\texttt{band}${=}$\texttt{none}, an all-zero condition, so the only thing it takes from its
+template is the node count. That is not nothing, and it is not the whole label either: in this
+generator community sizes are drawn from $20$--$40$, so $n$ alone predicts the community count with
+$85.8\%$ accuracy against a $25\%$ chance rate. The inherited label is therefore mostly, but not
+entirely, recoverable from the one quantity the sample actually carries, and the residual is
+noise. At the 1:1 augmentation ratio used here that is enough to degrade training without making
+the arm a pure noise control, which is the reading we withdraw: the drop is a fact about a partly
+broken labelling procedure, not a measurement of unconditioned sample quality. A clean version of
+this experiment would label generated graphs from their own recovered structure, which we did not
+do.
 
 The conditioned arm is not a clean contrast either. It was run at \texttt{high}, $k{=}32$ --- the
 high-leakage extreme of Table~\ref{tab:leakage} --- and conditioned on the real training graphs
@@ -531,7 +552,8 @@ leaves the mechanism behind them open.
 This is an exploratory study of one benchmark under one protocol, with oracle spectra for its
 headline arms, and what it can support is correspondingly narrow.
 Measured as a controlled side channel with matched-capacity controls and an information floor: no
-consistent monotonic trend across the tested cutoffs, two isolated minima that both leak, and an
+consistent monotonic trend across the tested cutoffs, four cells that move and two that dominate
+them --- both of which leak --- and an
 information floor that --- once it was fixed --- refuted our own claim to have ruled leakage out,
 while still failing to explain where those minima are.
 

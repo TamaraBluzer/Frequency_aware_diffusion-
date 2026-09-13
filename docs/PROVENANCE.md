@@ -450,3 +450,29 @@ at the top of this document.
 ER = 337.91). Stage 8's end-to-end numbers are four-metric (ER = 161.67) and are not comparable to
 the tables. The paper says so at the point of use, and `report_breakdown.json`'s
 `comparability_audit` confirms all fifteen saved reports sit on the five-metric scale.
+
+---
+
+## Addendum: sources added after the leakage correction
+
+Three sets of numbers in the paper come from files committed under `DanielNewWork/` rather than
+`results/`, because they were produced on a machine that holds artifacts this one does not.
+
+| Paper location | Claim | Source |
+|---|---|---|
+| Abstract, S4.3 | 12-arm copying audit: `low` F1 0.613–0.622, `high` 0.332–0.342, `none` at chance (rank 15.3–17.5 of 32), `random` 19–22% top-1 | `DanielNewWork/copying_all_arms.json` |
+| S4.4 | Connectivity by arm (`low` 65.6–68.8%, `high` 81.2–93.8%, `none`/`random` 87.5–96.9%), mean edges 176.5 | same |
+| S4.2, Abstract, Conclusion | Four cells separate beyond 3 sd of the `none` arm's three-seed spread (330.1 ± 7.5); all 15 controls within 1.9 sd | `DanielNewWork/review_checks.json` → `sweep_effects` |
+| S4.3 | Planar low-band recovery falls 30.9 points from k=16 to k=32 | same → `monotonicity` |
+| S4.6 | Node count alone predicts SBM community count at 85.8% (chance 25%) | same → `label_leakage` |
+
+**Reproducibility limit on the copying numbers.** `results/*.pt` is gitignored, so the generated
+samples behind S4.3 and S4.4 are not in the repository. Two copies of
+`adjacency_diffusion_planar_low_k8_samples.pt` exist on different machines and disagree: matched
+F1 0.622 vs 0.653, connected_frac 0.688 vs 0.469. The *conclusion* — perfect retrieval for both
+conditioned bands, chance for `none` — replicates on every copy and seed. The digits do not. The
+paper quotes ranges rather than point estimates for this reason, and
+`results/bootstrap_low_k8.json` records the other copy's values.
+
+**Still missing.** Every saved sample file is at k=8. Whether k=16 copies more or less than k=8 —
+the comparison that would resolve S4.3 — cannot be answered from any artifact now in hand.
