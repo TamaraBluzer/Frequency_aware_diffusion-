@@ -9,12 +9,14 @@ an additional input.
 **Frequency or Information? A Diagnostic Study of Spectral Side-Channel Conditioning in Graph Diffusion**
 
 - [Read the paper (PDF)](paper/main.pdf)
+- [Download the submission ZIP](Frequency_or_Information_315287441_208004119_207826314_211490362.zip)
 - [LaTeX source](paper/main.tex)
 - [Build instructions, figure sources and evaluation scope](paper/README.md)
 
 The ACL-format paper has five body pages and one reference page. It includes the frequency
 comparison, reconstruction analysis, a larger-budget experiment and a secondary graph
-classification experiment.
+classification experiment. The submission ZIP contains only `main.pdf`; the report includes
+the GitHub link for the code. It does not include internal review notes or lecture slides.
 
 ## What we study
 
